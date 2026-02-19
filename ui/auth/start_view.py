@@ -7,6 +7,9 @@ def start_view(page: ft.Page):
     def go_login(e):
         page.go("/login")
 
+    def go_register(e):
+        page.go("/register")
+
     title_text = ft.Text(
         "OwlTrack 🦉",
         size=FONT_XL,
@@ -25,6 +28,15 @@ def start_view(page: ft.Page):
             opacity=0,
             animate_opacity=600,
             on_click=go_login,
+            ),
+
+            ft.ElevatedButton(
+            "Register",
+            width = 220,
+            height = 45,
+            opacity=0,
+            animate_opacity=600,
+            on_click=go_register,
             ),
         ],
     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -50,6 +62,8 @@ def start_view(page: ft.Page):
         title_text.size = FONT_LG
         title_text.opacity = 1
         buttons.controls[0].opacity = 1
+        buttons.controls[1].opacity = 1
+
         page.update()
 
     page.run_task(animate_logo)
