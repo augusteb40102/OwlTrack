@@ -78,11 +78,12 @@ def start_view(page: ft.Page):
 
     return ft.View(
         route="/",
+        bgcolor=BACKGROUND,
         controls=[
             ft.Container(
                 content=content,
                 expand=True,
-                bgcolor=BACKGROUND,
+                alignment=ft.Alignment(0, 0),
             ),
         ],
         expand=True,
