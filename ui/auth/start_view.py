@@ -12,10 +12,10 @@ def start_view(page: ft.Page):
         page.go("/register")
 
     owl = ft.Container(
-        content=owl_logo(size=110),
-        opacity=0,
-        animate_opacity=800,
-    )
+    content=owl_logo(size=110),
+    opacity=0,
+    animate_opacity=800,
+)
 
     title_text = ft.Text(
         "OwlTrack",
@@ -89,3 +89,4 @@ def start_view(page: ft.Page):
         expand=True,
         padding=0,
     )
+
