@@ -13,6 +13,12 @@ def start_view(page: ft.Page):
         animate_opacity=800,
     )
 
+    login_button = ft.ElevatedButton(
+        "Login",
+        visible=False,  # pradžioje paslėptas
+        on_click=lambda e: page.go("/login")
+    )
+
     content = ft.Column(
         [title_text],
          alignment=ft.MainAxisAlignment.CENTER,
