@@ -4,6 +4,9 @@ from ui.themes import *
 
 def start_view(page: ft.Page):
 
+    def go_login(e):
+        page.go("/login")
+
     title_text = ft.Text(
         "OwlTrack 🦉",
         size=FONT_XL,
@@ -13,14 +16,23 @@ def start_view(page: ft.Page):
         animate_opacity=800,
     )
 
-    login_button = ft.ElevatedButton(
-        "Login",
-        visible=False,  # pradžioje paslėptas
-        on_click=lambda e: page.go("/login")
+    buttons = ft.Column(
+        [
+            ft.ElevatedButton(
+            "Log in",
+            width = 220,
+            height = 45,
+            opacity=0,
+            animate_opacity=600,
+            on_vlick=go_login,
+            ),
+        ],
+    horizontal_aligment=ft.CrossAxisAligment.CENTER,
+    spacing=SPACE_SM,
     )
 
     content = ft.Column(
-        [title_text],
+        [title_text,buttons],
          alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         expand = True,
@@ -35,7 +47,13 @@ def start_view(page: ft.Page):
         page.update()
         await asyncio.sleep(0.8)
 
-    page.run_task(animate_logo)
+        title_text.size = FONT_LG
+        title_text.opacity = 1
+        buttons.controls[0].opacity = 1
+        page.update()
+
+
+        page.run_task(animate_logo)
     
     return ft.View(
         route="/",
@@ -44,26 +62,10 @@ def start_view(page: ft.Page):
                 content=content,
                 expand=True,
                 bgcolor=BACKGROUND
-            )
-        ]
+            ),
+        ],
+        expand=True,
+        padding=0,
     )
 
 
-def login_view(page: ft.Page):
-    return ft.View(
-        route="/login",
-        controls=[
-            ft.Container(
-                expand=True,
-                bgcolor=BACKGROUND,
-                content=ft.Column(
-                    [
-                        ft.Text("Login screen (čia vėliau bus forma)", size=FONT_L),
-                        ft.ElevatedButton("Back", on_click=lambda e: page.go("/"))
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-            )
-        ]
-    )
