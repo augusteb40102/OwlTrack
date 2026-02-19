@@ -1,6 +1,7 @@
 import flet as ft
 from ui.auth.start_view import start_view
 from ui.auth.login_view import login_view
+from ui.auth.register_view import register_view
 
 def main(page: ft.Page):
 
@@ -13,6 +14,8 @@ def main(page: ft.Page):
             page.views.append(start_view(page))
         elif page.route == "/login":
             page.views.append(login_view(page))
+        elif page.route == "/register":
+            page.views.append(register_view(page))
         page.update()
 
     page.on_route_change = route_change
