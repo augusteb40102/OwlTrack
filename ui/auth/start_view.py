@@ -47,3 +47,23 @@ def start_view(page: ft.Page):
             )
         ]
     )
+
+
+def login_view(page: ft.Page):
+    return ft.View(
+        route="/login",
+        controls=[
+            ft.Container(
+                expand=True,
+                bgcolor=BACKGROUND,
+                content=ft.Column(
+                    [
+                        ft.Text("Login screen (čia vėliau bus forma)", size=FONT_L),
+                        ft.ElevatedButton("Back", on_click=lambda e: page.go("/"))
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+            )
+        ]
+    )
