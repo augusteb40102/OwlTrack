@@ -4,9 +4,9 @@ from ui.auth.login_view import login_view
 from ui.auth.register_view import register_view
 
 def main(page: ft.Page):
-
     page.title = "OwlTrack"
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.padding = 0
+    page.spacing = 0
 
     def route_change(route):
         page.views.clear()

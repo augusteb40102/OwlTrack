@@ -74,7 +74,9 @@ def start_view(page: ft.Page):
             ft.Container(
                 content=content,
                 expand=True,
-                bgcolor=BACKGROUND
+                width=page.window.width,
+                height=page.window.height,
+                bgcolor=BACKGROUND,
             ),
         ],
         expand=True,
