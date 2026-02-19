@@ -24,10 +24,10 @@ def start_view(page: ft.Page):
             height = 45,
             opacity=0,
             animate_opacity=600,
-            on_vlick=go_login,
+            on_click=go_login,
             ),
         ],
-    horizontal_aligment=ft.CrossAxisAligment.CENTER,
+    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     spacing=SPACE_SM,
     )
 
@@ -52,8 +52,7 @@ def start_view(page: ft.Page):
         buttons.controls[0].opacity = 1
         page.update()
 
-
-        page.run_task(animate_logo)
+    page.run_task(animate_logo)
     
     return ft.View(
         route="/",
