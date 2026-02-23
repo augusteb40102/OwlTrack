@@ -1,5 +1,6 @@
 import flet as ft
-from ui.themes import *
+from ui.themes.themes import *
+from ui.themes.backgrounds import auth_background
 
 def register_view(page: ft.Page):
 
@@ -117,48 +118,46 @@ def register_view(page: ft.Page):
         print(f"Registruojamas: {name_field.value}, {email_field.value}")
         page.go("/login")
 
+    content = ft.Column(
+        [
+            ft.Text(
+                "Registracija",
+                size=FONT_LG,
+                weight="bold",
+                color=TEXT_PRIMARY,
+            ),
+            ft.Text(
+                "Sukurkite naują paskyrą",
+                size=FONT_XS,
+                color=TEXT_SECONDARY,
+            ),
+            ft.Divider(height=SPACE_MD, color=ft.Colors.TRANSPARENT),
+            email_field,
+            name_field,
+            password_field,
+            password_confirm_field,
+            error_text,
+            ft.Divider(height=SPACE_SM, color=ft.Colors.TRANSPARENT),
+            ft.ElevatedButton(
+                "Registruotis",
+                width=320,
+                height=45,
+                on_click=register,
+            ),
+            ft.TextButton(
+                "← Atgal",
+                on_click=go_back,
+            ),
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        expand=True,
+        spacing=SPACE_SM,
+    )
+
     return ft.View(
         route="/register",
-        controls=[
-            ft.Container(
-                expand=True,
-                bgcolor=BACKGROUND,
-                content=ft.Column(
-                    [
-                        ft.Text(
-                            "Registracija",
-                            size=FONT_LG,
-                            weight="bold",
-                            color=TEXT_PRIMARY,
-                        ),
-                        ft.Text(
-                            "Sukurkite naują paskyrą",
-                            size=FONT_XS,
-                            color=TEXT_SECONDARY,
-                        ),
-                        ft.Divider(height=SPACE_MD, color=ft.Colors.TRANSPARENT),
-                        email_field,
-                        name_field,
-                        password_field,
-                        password_confirm_field,
-                        error_text,
-                        ft.Divider(height=SPACE_SM, color=ft.Colors.TRANSPARENT),
-                        ft.ElevatedButton(
-                            "Registruotis",
-                            width=320,
-                            height=45,
-                            on_click=register,
-                        ),
-                        ft.TextButton(
-                            "← Atgal",
-                            on_click=go_back,
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    expand=True,
-                    spacing=SPACE_SM,
-                )
-            )
-        ]
+        controls=[auth_background(content)],
+        expand=True,
+        padding=0,
     )

@@ -1,5 +1,6 @@
 import flet as ft
-from ui.themes import *
+from ui.themes.themes import *
+from ui.themes.backgrounds import auth_background
 
 def login_view(page: ft.Page):
     def go_back(e):
@@ -107,13 +108,7 @@ def login_view(page: ft.Page):
     return ft.View(
         route="/login",
         bgcolor=BACKGROUND,
-        controls=[
-            ft.Container(
-                content=content,
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-            )
-        ],
+        controls=[auth_background(content)],
         expand=True,
         padding=ft.Padding(
             left=SPACE_LG,

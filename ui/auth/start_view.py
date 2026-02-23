@@ -1,6 +1,7 @@
 import flet as ft
 import asyncio
-from ui.themes import *
+from ui.themes.themes import *
+from ui.themes.backgrounds import auth_background
 
 def start_view(page: ft.Page):
 
@@ -86,13 +87,7 @@ def start_view(page: ft.Page):
     return ft.View(
         route="/",
         bgcolor=BACKGROUND,
-        controls=[
-            ft.Container(
-                content=content,
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-            ),
-        ],
+        controls=[auth_background(content)],
         expand=True,
         padding=0,
     )
