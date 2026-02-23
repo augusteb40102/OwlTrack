@@ -1,7 +1,6 @@
 import flet as ft
 import asyncio
 from ui.themes import *
-from ui.assets import owl_logo
 
 def start_view(page: ft.Page):
 
@@ -12,10 +11,18 @@ def start_view(page: ft.Page):
         page.go("/register")
 
     owl = ft.Container(
-    content=owl_logo(size=110),
-    opacity=0,
-    animate_opacity=800,
-)
+        content=ft.Image(
+                src="owl_clean.png",
+                width=110,
+                height=110,
+                fit="contain",
+            ),
+            opacity=0,
+            animate_opacity=800,
+    #content=owl_logo(size=110),
+    #opacity=0,
+    #animate_opacity=800,
+    )
 
     title_text = ft.Text(
         "OwlTrack",
