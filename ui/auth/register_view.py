@@ -6,6 +6,15 @@ def register_view(page: ft.Page):
     def go_back(e):
         page.go("/")
 
+    def validate_password(password: str) -> str | None:
+        if len(password) < 8:
+            return "Slaptažodis turi būti bent 8 simbolių"
+        if not any(c.isupper() for c in password):
+            return "Slaptažodis turi turėti bent vieną didžiąją raidę"
+        if not any(c.isdigit() for c in password):
+            return "Slaptažodis turi turėti bent vieną skaičių"
+        return None
+    
     email_field = ft.TextField(
         label="El. pašto adresas",
         width=320,
@@ -87,6 +96,14 @@ def register_view(page: ft.Page):
             page.update()
             return
 
+        password_error = validate_password(password_field.value)
+        if password_error:
+            password_field.border_color = ERROR
+            error_text.value = password_error
+            error_text.visible = True
+            page.update()
+            return
+        
         # Tikriname slaptažodžių sutapimą
         if password_field.value != password_confirm_field.value:
             password_field.border_color = ERROR
