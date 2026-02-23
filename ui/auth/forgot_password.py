@@ -1,11 +1,10 @@
-# login_view.py
 import flet as ft
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
 
-def login_view(page: ft.Page):
+def forgot_password_view(page: ft.Page):
     def go_back(e):
-        page.go("/")
+        page.go("/login")
 
     email_field = ft.TextField(
         label="El. pašto adresas",
@@ -17,16 +16,11 @@ def login_view(page: ft.Page):
         label_style=ft.TextStyle(color=TEXT_SECONDARY),
     )
 
-    password_field = ft.TextField(
-        label="Slaptažodis",
-        width=320,
-        password=True,
-        can_reveal_password=True,
-        bgcolor=SURFACE,
-        border_color=BORDER,
-        focused_border_color=PRIMARY,
-        text_style=ft.TextStyle(color=TEXT_PRIMARY),
-        label_style=ft.TextStyle(color=TEXT_SECONDARY),
+    success_text = ft.Text(
+        "",
+        color=PRIMARY,
+        size=FONT_XS,
+        visible=False,
     )
 
     error_text = ft.Text(
@@ -36,13 +30,16 @@ def login_view(page: ft.Page):
         visible=False,
     )
 
-    def on_login(e):
-        if not email_field.value or not password_field.value:
-            error_text.value = "Prašome užpildyti visus laukus"
+    def on_send(e):
+        if not email_field.value:
+            error_text.value = "Įveskite el. pašto adresą"
             error_text.visible = True
+            success_text.visible = False
             page.update()
             return
         error_text.visible = False
+        success_text.value = "Nuoroda išsiųsta į " + email_field.value
+        success_text.visible = True
         page.update()
 
     content = ft.Container(
@@ -60,40 +57,30 @@ def login_view(page: ft.Page):
                 ),
                 ft.Container(height=SPACE_LG),
                 ft.Text(
-                    "Prisijungimas",
+                    "Pamiršau slaptažodį",
                     size=FONT_LG,
                     weight="bold",
                     color=TEXT_PRIMARY,
                 ),
                 ft.Text(
-                    "Įveskite savo duomenis",
+                    "Įveskite el. paštą ir išsiųsime atkūrimo nuorodą",
                     size=FONT_SM,
                     color=TEXT_SECONDARY,
+                    text_align=ft.TextAlign.CENTER,
+                    width=320,
                 ),
                 ft.Container(height=SPACE_LG),
                 email_field,
                 ft.Container(height=SPACE_SM),
-                password_field,
-                # Pamiršau slaptažodį
-                ft.Container(
-                    content=ft.TextButton(
-                        "Pamiršau slaptažodį",
-                        on_click=lambda e: page.go("/forgot-password"),
-                        style=ft.ButtonStyle(
-                            color=PRIMARY,
-                        ),
-                    ),
-                    width=320,
-                    alignment=ft.Alignment(-1, 0),
-                ),
                 error_text,
+                success_text,
                 ft.Container(height=SPACE_SM),
                 ft.ElevatedButton(
-                    "Prisijungti",
+                    "Siųsti nuorodą",
                     width=320,
                     height=48,
                     style=primary_button_style(),
-                    on_click=on_login,
+                    on_click=on_send,
                 ),
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -105,7 +92,7 @@ def login_view(page: ft.Page):
     )
 
     return ft.View(
-        route="/login",
+        route="/forgot-password",
         controls=[auth_background(content)],
         expand=True,
         padding=0,
