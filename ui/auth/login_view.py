@@ -107,13 +107,7 @@ def login_view(page: ft.Page):
 
     return ft.View(
         route="/login",
-        bgcolor=BACKGROUND,
         controls=[auth_background(content)],
         expand=True,
-        padding=ft.Padding(
-            left=SPACE_LG,
-            right=SPACE_LG,
-            top=SPACE_MD,
-            bottom=SPACE_LG,
-        ),
+        padding=0,
     )

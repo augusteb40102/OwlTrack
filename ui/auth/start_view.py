@@ -84,11 +84,31 @@ def start_view(page: ft.Page):
 
     page.run_task(animate_logo)
 
+    
+
     return ft.View(
-        route="/",
-        bgcolor=BACKGROUND,
-        controls=[auth_background(content)],
-        expand=True,
-        padding=0,
-    )
+    route="/",
+    controls=[
+        ft.Stack(
+            expand=True,
+            controls=[
+                # GIF fonas
+                ft.Image(
+                    src="stars_twinkle.gif",
+                    width=page.window.width,
+                    height=page.window.height,
+                    fit="fill",
+                ),
+                # Turinys ant fono
+                ft.Container(
+                    content=content,
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                ),
+            ]
+        )
+    ],
+    expand=True,
+    padding=0,
+)
 
