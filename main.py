@@ -4,6 +4,7 @@ from ui.auth.login_view import login_view
 from ui.auth.register_view import register_view
 from ui.auth.forgot_password import forgot_password_view
 from ui.auth.profile_photo_view import profile_photo_view
+from ui.auth.dashboard_view import dashboard_view
 
 def main(page: ft.Page):
     page.title = "OwlTrack"
@@ -22,6 +23,8 @@ def main(page: ft.Page):
             page.views.append(forgot_password_view(page))
         elif page.route == "/profile-photo":
             page.views.append(profile_photo_view(page))
+        elif page.route == "/dashboard":
+             page.views.append(dashboard_view(page))
         page.update()
 
     page.on_route_change = route_change
