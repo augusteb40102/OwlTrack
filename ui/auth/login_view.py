@@ -43,7 +43,7 @@ def login_view(page: ft.Page):
             page.update()
             return
         error_text.visible = False
-        page.update()
+        page.go("/dashboard")
 
     content = ft.Container(
         content=ft.Column(

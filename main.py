@@ -3,6 +3,7 @@ from ui.auth.start_view import start_view
 from ui.auth.login_view import login_view
 from ui.auth.register_view import register_view
 from ui.auth.forgot_password import forgot_password_view
+from ui.auth.dashboard_view import dashboard_view
 
 def main(page: ft.Page):
     page.title = "OwlTrack"
@@ -19,7 +20,8 @@ def main(page: ft.Page):
             page.views.append(register_view(page))
         elif page.route == "/forgot-password":
              page.views.append(forgot_password_view(page))
-             page.update()
+        elif page.route == "/dashboard":
+             page.views.append(dashboard_view(page))
 
     page.on_route_change = route_change
     route_change(page.route)
