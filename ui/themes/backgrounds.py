@@ -48,7 +48,7 @@ def auth_background(content, page=None):
         width=float("inf"),
         controls=[
             ft.Image(
-                src="stars_twinkle.gif",
+                src="cosmos_purple.gif",
                 width=float("inf"),
                 height=float("inf"),
                 expand=True,
