@@ -114,9 +114,12 @@ def register_view(page: ft.Page):
             page.update()
             return
 
-        # Viskas gerai — čia vėliau bus registracijos logika
-        print(f"Registruojamas: {name_field.value}, {email_field.value}")
-        page.go("/login")
+        # Viskas gerai — išsaugome vardą ir einame į avataro pasirinkimą
+        if not hasattr(page, "data") or page.data is None:
+            page.data = {}
+        page.data["register_name"] = name_field.value
+        page.data["register_email"] = email_field.value
+        page.go("/profile-photo")
 
     content = ft.Column(
         [
