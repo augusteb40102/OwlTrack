@@ -8,7 +8,7 @@ def login_view(page: ft.Page):
         page.go("/")
 
     email_field = ft.TextField(
-        label="El. pašto adresas",
+        label="Email adress",
         width=320,
         bgcolor=SURFACE,
         border_color=BORDER,
@@ -18,7 +18,7 @@ def login_view(page: ft.Page):
     )
 
     password_field = ft.TextField(
-        label="Slaptažodis",
+        label="Password",
         width=320,
         password=True,
         can_reveal_password=True,
@@ -38,7 +38,7 @@ def login_view(page: ft.Page):
 
     def on_login(e):
         if not email_field.value or not password_field.value:
-            error_text.value = "Prašome užpildyti visus laukus"
+            error_text.value = "Please fill in all fields"
             error_text.visible = True
             page.update()
             return
@@ -60,13 +60,13 @@ def login_view(page: ft.Page):
                 ),
                 ft.Container(height=SPACE_LG),
                 ft.Text(
-                    "Prisijungimas",
+                    "Login",
                     size=FONT_LG,
                     weight="bold",
                     color=TEXT_PRIMARY,
                 ),
                 ft.Text(
-                    "Įveskite savo duomenis",
+                    "Enter your details",
                     size=FONT_SM,
                     color=TEXT_SECONDARY,
                 ),
@@ -77,7 +77,7 @@ def login_view(page: ft.Page):
                 # Pamiršau slaptažodį
                 ft.Container(
                     content=ft.TextButton(
-                        "Pamiršau slaptažodį",
+                        "Forgot password?",
                         on_click=lambda e: page.go("/forgot-password"),
                         style=ft.ButtonStyle(
                             color=PRIMARY,
@@ -89,7 +89,7 @@ def login_view(page: ft.Page):
                 error_text,
                 ft.Container(height=SPACE_SM),
                 ft.ElevatedButton(
-                    "Prisijungti",
+                    "Log in",
                     width=320,
                     height=48,
                     style=primary_button_style(),
