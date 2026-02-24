@@ -94,7 +94,7 @@ def start_view(page: ft.Page):
             controls=[
                 # GIF fonas
                 ft.Image(
-                    src="stars_twinkle.gif",
+                    src="cosmos_purple.gif",
                     width=page.window.width,
                     height=page.window.height,
                     fit="fill",
