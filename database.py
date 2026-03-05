@@ -49,3 +49,21 @@ def register_user(name: str, email: str, password: str) -> dict:
     conn.commit()
     conn.close()
     return {"success": True}
+
+def login_user(email: str, password: str) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Tikriname ar vartotojas egzistuoja
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return {"success": False, "error": "Account with this email does not exist"}
+
+    # Tikriname slaptažodį
+    if not bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
+        return {"success": False, "error": "Incorrect password"}
+
+    return {"success": True, "user": {"id": user["id"], "name": user["name"], "email": user["email"]}}

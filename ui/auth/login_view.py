@@ -2,6 +2,7 @@
 import flet as ft
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
+from database import login_user
 
 def login_view(page: ft.Page):
     def go_back(e):
@@ -42,7 +43,13 @@ def login_view(page: ft.Page):
             error_text.visible = True
             page.update()
             return
-        error_text.visible = False
+        result = login_user(email_field.value, password_field.value)
+        if not result["success"]:
+            error_text.value = result["error"]
+            error_text.visible = True
+            page.update()
+            return
+
         page.go("/dashboard")
 
     content = ft.Container(
