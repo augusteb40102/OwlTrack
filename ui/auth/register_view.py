@@ -1,6 +1,7 @@
 import flet as ft
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
+from database import register_user
 
 def register_view(page: ft.Page):
 
@@ -114,7 +115,15 @@ def register_view(page: ft.Page):
             page.update()
             return
 
-        # Viskas gerai — išsaugome vardą ir einame į avataro pasirinkimą
+        # Išsaugome į DB
+        result = register_user(name_field.value, email_field.value, password_field.value)
+        if not result["success"]:
+            error_text.value = result["error"]
+            error_text.visible = True
+            page.update()
+            return
+
+        # Jei sėkminga — einame į pelėdžiuko pasirinkimą
         if not hasattr(page, "data") or page.data is None:
             page.data = {}
         page.data["register_name"] = name_field.value
