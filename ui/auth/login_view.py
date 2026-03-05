@@ -1,4 +1,3 @@
-# login_view.py
 import flet as ft
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
@@ -9,7 +8,7 @@ def login_view(page: ft.Page):
         page.go("/")
 
     email_field = ft.TextField(
-        label="Email adress",
+        label="Email address",
         width=320,
         bgcolor=SURFACE,
         border_color=BORDER,
@@ -43,6 +42,7 @@ def login_view(page: ft.Page):
             error_text.visible = True
             page.update()
             return
+
         result = login_user(email_field.value, password_field.value)
         if not result["success"]:
             error_text.value = result["error"]
@@ -50,6 +50,12 @@ def login_view(page: ft.Page):
             page.update()
             return
 
+        # Išsaugome vartotojo duomenis į page.data
+        if not hasattr(page, "data") or page.data is None:
+            page.data = {}
+        page.data["register_name"]  = result["user"]["name"]
+        page.data["register_email"] = result["user"]["email"]
+        page.data["avatar_src"]     = result["user"]["avatar_src"]
         page.go("/dashboard")
 
     content = ft.Container(
@@ -81,14 +87,11 @@ def login_view(page: ft.Page):
                 email_field,
                 ft.Container(height=SPACE_SM),
                 password_field,
-                # Pamiršau slaptažodį
                 ft.Container(
                     content=ft.TextButton(
                         "Forgot password?",
                         on_click=lambda e: page.go("/forgot-password"),
-                        style=ft.ButtonStyle(
-                            color=PRIMARY,
-                        ),
+                        style=ft.ButtonStyle(color=PRIMARY),
                     ),
                     width=320,
                     alignment=ft.Alignment(-1, 0),

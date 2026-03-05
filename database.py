@@ -19,9 +19,16 @@ def create_tables():
             name        TEXT NOT NULL,
             email       TEXT NOT NULL UNIQUE,
             password    TEXT NOT NULL,
+            avatar_src  TEXT DEFAULT NULL,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Pridedame avatar_src stulpelį jei jo nėra (esamai DB)
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN avatar_src TEXT DEFAULT NULL")
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()
@@ -31,16 +38,13 @@ def register_user(name: str, email: str, password: str) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Tikriname ar el. paštas jau egzistuoja
     cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
     if cursor.fetchone():
         conn.close()
         return {"success": False, "error": "An account with this email already exists"}
 
-    # Užkoduojame slaptažodį
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
-    # Išsaugome vartotoją
     cursor.execute(
         "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
         (name, email, hashed.decode("utf-8"))
@@ -50,11 +54,17 @@ def register_user(name: str, email: str, password: str) -> dict:
     conn.close()
     return {"success": True}
 
+def save_avatar(email: str, avatar_src: str) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET avatar_src = ? WHERE email = ?", (avatar_src, email))
+    conn.commit()
+    conn.close()
+
 def login_user(email: str, password: str) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Tikriname ar vartotojas egzistuoja
     cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
     user = cursor.fetchone()
     conn.close()
@@ -62,8 +72,15 @@ def login_user(email: str, password: str) -> dict:
     if not user:
         return {"success": False, "error": "Account with this email does not exist"}
 
-    # Tikriname slaptažodį
     if not bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
         return {"success": False, "error": "Incorrect password"}
 
-    return {"success": True, "user": {"id": user["id"], "name": user["name"], "email": user["email"]}}
+    return {
+        "success": True,
+        "user": {
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "avatar_src": user["avatar_src"],
+        }
+    }

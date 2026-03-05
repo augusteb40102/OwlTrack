@@ -1,6 +1,7 @@
 import flet as ft
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
+from database import save_avatar
 
 PROFILE_AVATARS = [
     {"id": 1, "src": "greenpele.png",  "name": "Green"},
@@ -16,8 +17,10 @@ def profile_photo_view(page: ft.Page):
     avatar_refs = {}
 
     username = ""
-    if hasattr(page, "data") and page.data and "register_name" in page.data:
-        username = page.data["register_name"]
+    email = ""
+    if hasattr(page, "data") and page.data:
+        username = page.data.get("register_name", "")
+        email    = page.data.get("register_email", "")
 
     def on_avatar_select(avatar_id):
         for aid, (container, _) in avatar_refs.items():
@@ -39,7 +42,13 @@ def profile_photo_view(page: ft.Page):
             return
         chosen = next((a for a in PROFILE_AVATARS if a["id"] == selected_id[0]), None)
         if chosen:
-            print(f"Selected avatar: {chosen['name']}")
+            if not hasattr(page, "data") or page.data is None:
+                page.data = {}
+            page.data["avatar_src"] = chosen["src"]
+            print(f"[profile_photo] saved avatar_src={chosen['src']}, page.data={page.data}")
+            # Išsaugome avatarą duomenų bazėje
+            if email:
+                save_avatar(email, chosen["src"])
         page.go("/dashboard")
 
     avatar_grid_items = []
@@ -48,8 +57,7 @@ def profile_photo_view(page: ft.Page):
             src=avatar["src"],
             width=90,
             height=90,
-            fit="cover",
-            border_radius=ft.border_radius.all(45),
+            fit="contain",
         )
         name_text = ft.Text(
             avatar["name"],
