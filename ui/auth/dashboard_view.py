@@ -6,15 +6,21 @@ BORDER = "#b89ee8"
 RADIUS_LG = 20
 SPACE_LG = 24
 
+
 def dashboard_view(page: ft.Page):
 
-    username   = "User"
+    username = "User"
     avatar_src = None
 
     if hasattr(page, "data") and page.data:
-        username   = page.data.get("register_name", "User")
+        username = page.data.get("register_name", "User")
         avatar_src = page.data.get("avatar_src", None)
 
+    # Logout funkcija
+    def logout(e):
+        page.go("/login")
+
+    # Avatar
     if avatar_src:
         avatar_widget = ft.Image(
             src=avatar_src,
@@ -38,24 +44,68 @@ def dashboard_view(page: ft.Page):
             alignment=ft.Alignment(0, 0),
         )
 
+    # Viršus — OwlTrack + profilis
+    top = ft.Column(
+        [
+            ft.Container(
+                content=ft.Text(
+                    "OwlTrack",
+                    size=24,
+                    weight="bold",
+                    color="#d8b4fe",
+                ),
+                padding=ft.padding.only(top=20, bottom=20),
+                alignment=ft.Alignment(0, 0),
+            ),
+            avatar_widget,
+            ft.Container(height=8),
+            ft.Text(
+                username,
+                size=15,
+                weight="bold",
+                color=ft.Colors.WHITE,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=0,
+    )
+
+    # Apačia — Log Out mygtukas
+    bottom = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.DOOR_FRONT_DOOR, color=ft.Colors.WHITE, size=20),
+                ft.Text("Log Out", size=14, color=ft.Colors.WHITE, weight="w600"),
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        width=180,
+        height=44,
+        border_radius=10,
+        gradient=ft.LinearGradient(
+            begin=ft.Alignment(-1, 0),
+            end=ft.Alignment(1, 0),
+            colors=["#6d3fc0", "#4a2d8a"],
+        ),
+        alignment=ft.Alignment(0, 0),
+        bottom=24,
+        left=20,
+        on_click=logout,
+        ink=True,
+    )
+
     sidebar = ft.Container(
         width=220,
         bgcolor=SIDEBAR_BG,
-        padding=ft.padding.symmetric(vertical=16, horizontal=8),
-        content=ft.Column(
+        content=ft.Stack(
             [
-                avatar_widget,
-                ft.Container(height=8),
-                ft.Text(
-                    f"Hi, {username}!",
-                    size=15,
-                    weight="bold",
-                    color=ft.Colors.WHITE,
-                    text_align=ft.TextAlign.CENTER,
-                ),
+                ft.Container(expand=True, bgcolor=SIDEBAR_BG),
+                ft.Container(content=top, top=0, left=0, right=0),
+                bottom,
             ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=2,
+            expand=True,
         ),
     )
 
