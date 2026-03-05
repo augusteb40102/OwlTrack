@@ -5,8 +5,10 @@ from ui.auth.register_view import register_view
 from ui.auth.forgot_password import forgot_password_view
 from ui.auth.profile_photo_view import profile_photo_view
 from ui.auth.dashboard_view import dashboard_view
+from database import create_tables
 
 def main(page: ft.Page):
+    create_tables()
     page.title = "OwlTrack"
     page.padding = 0
     page.spacing = 0
