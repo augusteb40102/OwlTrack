@@ -3,22 +3,28 @@ import flet as ft
 # ─────────────────────────────────────────
 # COLORS
 # ─────────────────────────────────────────
-PRIMARY = "#3b82f6"       # Mygtukai, akcentai
-SECONDARY = "#f472b6"     # Papildoma spalva
+PRIMARY = "#2D1B69"       # Tamsi violetinė
+SECONDARY = "#7C3AED"     # Violetinė
+ACCENT = "#3b82f6"        # Mėlynas akcentas
 
-BACKGROUND = "#FFFFFF"    # Pagrindinis fonas (dabar baltas)
-SURFACE = "#f8fafc"       # Kortelių, inputų fonas
-BORDER = "#e2e8f0"        # Kraštinės
+BACKGROUND = "#E8DEFF"    # Šviesiai violetinis
+SURFACE = "#F3EEFF"       # Kortelių, inputų fonas
+BORDER = "#2D1B69"        # Kraštinės
 
-TEXT_PRIMARY = "#0f172a"  # Pagrindinis tekstas
-TEXT_SECONDARY = "#64748b" # Antrinis tekstas
-TEXT_ON_PRIMARY = "#FFFFFF" # Tekstas ant mygtukų
+TEXT_PRIMARY = "#1a1040"    # Tamsus tekstas
+TEXT_SECONDARY = "#6B5A9E"  # Antrinis violetinis tekstas
+TEXT_ON_PRIMARY = "#FFFFFF" # Tekstas ant tamsių mygtukų
+TEXT_ON_SURFACE = "#2D1B69" # Tekstas ant šviesių mygtukų
 
 ERROR = "#ef4444"         # Klaidos
 SUCCESS = "#22c55e"       # Sėkmė
+TRANSPARENT = ft.Colors.TRANSPARENT
 
-# Gradientas (kai naudojamas vietoj paprasto fono)
-GRADIENT_COLORS = ["#0f172a", "#1e293b"]
+# Specifinės UI spalvos
+OVERLAY_SURFACE = "#1A1A2E80"
+BACKGROUND_DARK = "#0D0D1A"
+
+GRADIENT_COLORS = ["#C4B0FF", "#E8DEFF"]
 
 # ─────────────────────────────────────────
 # FONT SIZES
@@ -69,14 +75,28 @@ def primary_button_style():
 
 def secondary_button_style():
     return ft.ButtonStyle(
-        color=PRIMARY,
+        color=TEXT_ON_SURFACE,
         bgcolor=SURFACE,
         shape=ft.RoundedRectangleBorder(radius=RADIUS_MD),
+        side=ft.BorderSide(width=2, color=PRIMARY),
     )
 
 def ghost_button_style():
     return ft.ButtonStyle(
-        color=PRIMARY,
-        bgcolor=ft.Colors.TRANSPARENT,
-        shape=ft.RoundedRectangleBorder(radius=RADIUS_MD),
+        color=SECONDARY,
+        bgcolor=TRANSPARENT,
+        shape=ft.RoundedRectangleBorder(radius=RADIUS_FULL),
     )
+
+# ─────────────────────────────────────────
+# INPUT STYLES
+# ─────────────────────────────────────────
+def input_style():
+    return {
+        "bgcolor": SURFACE,
+        "border_color": BORDER,
+        "focused_border_color": SECONDARY,
+        "text_style": ft.TextStyle(color=TEXT_PRIMARY),
+        "label_style": ft.TextStyle(color=TEXT_SECONDARY),
+        "border_radius": RADIUS_LG,
+    }

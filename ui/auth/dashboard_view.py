@@ -1,8 +1,6 @@
 import flet as ft
+from ui.themes.themes import *
 
-SIDEBAR_BG = "#7c5cbf"
-SURFACE = "#c8b4f0"
-BORDER = "#b89ee8"
 RADIUS_LG = 20
 SPACE_LG = 24
 
@@ -34,13 +32,13 @@ def dashboard_view(page: ft.Page):
                 username[0].upper() if username else "U",
                 size=28,
                 weight="bold",
-                color=ft.Colors.WHITE,
+                color=TEXT_ON_PRIMARY,
                 text_align=ft.TextAlign.CENTER,
             ),
             width=72,
             height=72,
             border_radius=ft.border_radius.all(36),
-            bgcolor="#9d7de0",
+            bgcolor=SECONDARY,
             alignment=ft.Alignment(0, 0),
         )
 
@@ -52,7 +50,7 @@ def dashboard_view(page: ft.Page):
                     "OwlTrack",
                     size=24,
                     weight="bold",
-                    color="#d8b4fe",
+                    color=TEXT_ON_PRIMARY,
                 ),
                 padding=ft.padding.only(top=20, bottom=20),
                 alignment=ft.Alignment(0, 0),
@@ -63,7 +61,7 @@ def dashboard_view(page: ft.Page):
                 username,
                 size=15,
                 weight="bold",
-                color=ft.Colors.WHITE,
+                color=TEXT_ON_PRIMARY,
                 text_align=ft.TextAlign.CENTER,
             ),
         ],
@@ -75,8 +73,8 @@ def dashboard_view(page: ft.Page):
     bottom = ft.Container(
         content=ft.Row(
             [
-                ft.Icon(ft.Icons.DOOR_FRONT_DOOR, color=ft.Colors.WHITE, size=20),
-                ft.Text("Log Out", size=14, color=ft.Colors.WHITE, weight="w600"),
+                ft.Icon(ft.Icons.DOOR_FRONT_DOOR, color=TEXT_ON_PRIMARY, size=20),
+                ft.Text("Log Out", size=14, color=TEXT_ON_PRIMARY, weight="w600"),
             ],
             spacing=10,
             alignment=ft.MainAxisAlignment.CENTER,
@@ -87,7 +85,7 @@ def dashboard_view(page: ft.Page):
         gradient=ft.LinearGradient(
             begin=ft.Alignment(-1, 0),
             end=ft.Alignment(1, 0),
-            colors=["#6d3fc0", "#4a2d8a"],
+            colors=[SECONDARY, PRIMARY],
         ),
         alignment=ft.Alignment(0, 0),
         bottom=24,
@@ -98,10 +96,10 @@ def dashboard_view(page: ft.Page):
 
     sidebar = ft.Container(
         width=220,
-        bgcolor=SIDEBAR_BG,
+        bgcolor=PRIMARY,
         content=ft.Stack(
             [
-                ft.Container(expand=True, bgcolor=SIDEBAR_BG),
+                ft.Container(expand=True, bgcolor=PRIMARY),
                 ft.Container(content=top, top=0, left=0, right=0),
                 bottom,
             ],
@@ -116,7 +114,7 @@ def dashboard_view(page: ft.Page):
         content=ft.Container(
             expand=True,
             border_radius=RADIUS_LG,
-            bgcolor="#ffffff",
+            bgcolor=TEXT_ON_PRIMARY,
             border=ft.border.all(1, BORDER),
         ),
     )

@@ -32,7 +32,7 @@ def start_view(page: ft.Page):
         "OwlTrack",
         size=FONT_XL,
         weight="bold",
-        color=TEXT_PRIMARY,
+        color=TEXT_ON_PRIMARY,
         opacity=0,
         animate_opacity=800,
     )
@@ -45,6 +45,7 @@ def start_view(page: ft.Page):
                 height=45,
                 opacity=0,
                 animate_opacity=600,
+                style=primary_button_style(),
                 on_click=go_login,
             ),
             ft.ElevatedButton(
@@ -53,6 +54,7 @@ def start_view(page: ft.Page):
                 height=45,
                 opacity=0,
                 animate_opacity=600,
+                style=secondary_button_style(),
                 on_click=go_register,
             ),
         ],

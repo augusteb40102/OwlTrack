@@ -24,12 +24,12 @@ def profile_photo_view(page: ft.Page):
 
     def on_avatar_select(avatar_id):
         for aid, (container, _) in avatar_refs.items():
-            container.border = ft.border.all(3, ft.Colors.TRANSPARENT)
+            container.border = ft.border.all(3, TRANSPARENT)
             container.scale = 1.0
 
         if avatar_id in avatar_refs:
             container, _ = avatar_refs[avatar_id]
-            container.border = ft.border.all(3, "#A78BFA")
+            container.border = ft.border.all(3, SECONDARY)
             container.scale = 1.08
 
         selected_id[0] = avatar_id
@@ -62,7 +62,7 @@ def profile_photo_view(page: ft.Page):
         name_text = ft.Text(
             avatar["name"],
             size=11,
-            color="#BBBBBB",
+            color=TEXT_SECONDARY,
             text_align=ft.TextAlign.CENTER,
             weight="w500",
         )
@@ -75,8 +75,8 @@ def profile_photo_view(page: ft.Page):
             width=115,
             height=130,
             border_radius=12,
-            bgcolor="#1A1A2E80",
-            border=ft.border.all(3, ft.Colors.TRANSPARENT),
+            bgcolor=OVERLAY_SURFACE,
+            border=ft.border.all(3, TRANSPARENT),
             alignment=ft.Alignment(0, 0),
             animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT),
             animate_scale=ft.Animation(200, ft.AnimationCurve.EASE_OUT),
@@ -94,8 +94,8 @@ def profile_photo_view(page: ft.Page):
         opacity=0.4,
         on_click=confirm_selection,
         style=ft.ButtonStyle(
-            bgcolor={"": "#7C3AED"},
-            color={"": ft.Colors.WHITE},
+            bgcolor={"": SECONDARY},
+            color={"": TEXT_ON_PRIMARY},
             shape=ft.RoundedRectangleBorder(radius=8),
             text_style=ft.TextStyle(size=15, weight="bold"),
             elevation={"": 0},
@@ -120,20 +120,20 @@ def profile_photo_view(page: ft.Page):
                     f"Hello, {username}!" if username else "Hello!",
                     size=38,
                     weight="bold",
-                    color=ft.Colors.WHITE,
+                    color=TEXT_ON_PRIMARY,
                     text_align=ft.TextAlign.CENTER,
                 ),
                 ft.Text(
                     "Choose your profile avatar",
                     size=14,
-                    color="#CCCCCC",
+                    color=TEXT_SECONDARY,
                     text_align=ft.TextAlign.CENTER,
                 ),
                 ft.Container(height=24),
                 ft.Container(
                     content=grid,
                     width=420,
-                    bgcolor=ft.Colors.TRANSPARENT,
+                    bgcolor=TRANSPARENT,
                 ),
                 ft.Container(height=28),
                 confirm_btn,
@@ -141,7 +141,7 @@ def profile_photo_view(page: ft.Page):
                     "Skip",
                     on_click=lambda e: page.go("/dashboard"),
                     style=ft.ButtonStyle(
-                        color={"": "#888888"},
+                        color={"": TEXT_SECONDARY},
                     ),
                 ),
                 ft.Container(height=20),
@@ -160,5 +160,5 @@ def profile_photo_view(page: ft.Page):
         controls=[auth_background(content)],
         expand=True,
         padding=0,
-        bgcolor="#0D0D1A",
+        bgcolor=BACKGROUND_DARK,
     )

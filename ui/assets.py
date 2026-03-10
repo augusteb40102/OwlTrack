@@ -1,4 +1,5 @@
 import flet as ft
+from ui.themes.themes import *
 
 def owl_logo(size=120):
     return ft.Stack(
@@ -12,7 +13,7 @@ def owl_logo(size=120):
                 left=size * 0.075,
                 top=size * 0.15,
                 border_radius=size * 0.42,
-                bgcolor="#7B2FBE",
+                bgcolor=OWL_BODY,
             ),
             # Galva
             ft.Container(
@@ -21,7 +22,7 @@ def owl_logo(size=120):
                 left=size * 0.125,
                 top=size * 0.05,
                 border_radius=size * 0.35,
-                bgcolor="#8B35CE",
+                bgcolor=OWL_HEAD,
             ),
             # Kairysis ausynas
             ft.Container(
@@ -35,7 +36,7 @@ def owl_logo(size=120):
                     bottom_left=size * 0.04,
                     bottom_right=size * 0.04,
                 ),
-                bgcolor="#6A1FA8",
+                bgcolor=OWL_WING,
             ),
             # Dešinysis ausynas
             ft.Container(
@@ -49,7 +50,7 @@ def owl_logo(size=120):
                     bottom_left=size * 0.04,
                     bottom_right=size * 0.04,
                 ),
-                bgcolor="#6A1FA8",
+                bgcolor=OWL_WING,
             ),
             # Kairysis sparnas
             ft.Container(
@@ -63,7 +64,7 @@ def owl_logo(size=120):
                     bottom_left=size * 0.15,
                     bottom_right=size * 0.05,
                 ),
-                bgcolor="#6A1FA8",
+                bgcolor=OWL_WING,
             ),
             # Dešinysis sparnas
             ft.Container(
@@ -77,7 +78,7 @@ def owl_logo(size=120):
                     bottom_left=size * 0.05,
                     bottom_right=size * 0.15,
                 ),
-                bgcolor="#6A1FA8",
+                bgcolor=OWL_WING,
             ),
             # Pilvas
             ft.Container(
@@ -86,7 +87,7 @@ def owl_logo(size=120):
                 left=size * 0.25,
                 top=size * 0.52,
                 border_radius=size * 0.25,
-                bgcolor="#9B4FDE",
+                bgcolor=OWL_BELLY,
             ),
             # Kairysis akis (geltona)
             ft.Container(
@@ -95,7 +96,7 @@ def owl_logo(size=120):
                 left=size * 0.1,
                 top=size * 0.2,
                 border_radius=size * 0.15,
-                bgcolor="#F5C518",
+                bgcolor=OWL_EYE,
             ),
             # Dešinysis akis (geltona)
             ft.Container(
@@ -104,7 +105,7 @@ def owl_logo(size=120):
                 right=size * 0.1,
                 top=size * 0.2,
                 border_radius=size * 0.15,
-                bgcolor="#F5C518",
+                bgcolor=OWL_EYE,
             ),
             # Kairysis vyzdys
             ft.Container(
@@ -113,7 +114,7 @@ def owl_logo(size=120):
                 left=size * 0.165,
                 top=size * 0.265,
                 border_radius=size * 0.085,
-                bgcolor="#1a0a2e",
+                bgcolor=OWL_PUPIL,
             ),
             # Dešinysis vyzdys
             ft.Container(
@@ -122,7 +123,7 @@ def owl_logo(size=120):
                 right=size * 0.165,
                 top=size * 0.265,
                 border_radius=size * 0.085,
-                bgcolor="#1a0a2e",
+                bgcolor=OWL_PUPIL,
             ),
             # Kairysis blizgesys
             ft.Container(
@@ -154,7 +155,7 @@ def owl_logo(size=120):
                     bottom_left=size * 0.06,
                     bottom_right=size * 0.06,
                 ),
-                bgcolor="#F5A623",
+                bgcolor=OWL_BEAK,
             ),
             # Kairysis koja
             ft.Container(
@@ -163,7 +164,7 @@ def owl_logo(size=120):
                 left=size * 0.28,
                 top=size * 0.88,
                 border_radius=size * 0.04,
-                bgcolor="#F5A623",
+                bgcolor=OWL_BEAK,
             ),
             # Dešinysis koja
             ft.Container(
@@ -172,7 +173,7 @@ def owl_logo(size=120):
                 right=size * 0.28,
                 top=size * 0.88,
                 border_radius=size * 0.04,
-                bgcolor="#F5A623",
+                bgcolor=OWL_BEAK,
             ),
         ],
     )
