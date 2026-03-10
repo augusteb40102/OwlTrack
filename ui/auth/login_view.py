@@ -1,4 +1,5 @@
 import flet as ft
+import re
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
 from database import login_user
@@ -6,6 +7,9 @@ from database import login_user
 def login_view(page: ft.Page):
     def go_back(e):
         page.go("/")
+
+    def is_valid_email(email: str) -> bool:
+        return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
     email_field = ft.TextField(
         label="Email address",
@@ -43,7 +47,13 @@ def login_view(page: ft.Page):
             page.update()
             return
 
-        result = login_user(email_field.value, password_field.value)
+        if not is_valid_email(email_field.value):
+            error_text.value = "Enter a valid email address"
+            error_text.visible = True
+            page.update()
+            return
+
+        result = login_user(email_field.value.strip(), password_field.value)
         if not result["success"]:
             error_text.value = result["error"]
             error_text.visible = True

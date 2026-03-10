@@ -1,4 +1,5 @@
 import flet as ft
+import re
 from ui.themes.themes import *
 from ui.themes.backgrounds import auth_background
 from database import register_user
@@ -16,6 +17,9 @@ def register_view(page: ft.Page):
         if not any(c.isdigit() for c in password):
             return "Password must contain at least one number"
         return None
+
+    def is_valid_email(email: str) -> bool:
+        return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
     
     email_field = ft.TextField(
         label="Email adress",
@@ -84,6 +88,13 @@ def register_view(page: ft.Page):
             page.update()
             return
 
+        if not is_valid_email(email_field.value):
+            email_field.border_color = ERROR
+            error_text.value = "Enter a valid email address"
+            error_text.visible = True
+            page.update()
+            return
+
         if not name_field.value:
             name_field.border_color = ERROR
             error_text.value = "Enter your name"
@@ -116,7 +127,7 @@ def register_view(page: ft.Page):
             return
 
         # Išsaugome į DB
-        result = register_user(name_field.value, email_field.value, password_field.value)
+        result = register_user(name_field.value, email_field.value.strip(), password_field.value)
         if not result["success"]:
             error_text.value = result["error"]
             error_text.visible = True
@@ -127,7 +138,7 @@ def register_view(page: ft.Page):
         if not hasattr(page, "data") or page.data is None:
             page.data = {}
         page.data["register_name"] = name_field.value
-        page.data["register_email"] = email_field.value
+        page.data["register_email"] = email_field.value.strip()
         page.go("/profile-photo")
 
     content = ft.Column(
