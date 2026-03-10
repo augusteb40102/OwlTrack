@@ -33,4 +33,4 @@ def main(page: ft.Page):
     route_change(page.route)
     page.update()
     
-ft.app(target=main, assets_dir="assets")
+ft.run(main, assets_dir="assets")

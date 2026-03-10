@@ -5,6 +5,9 @@ from ui.themes.backgrounds import auth_background
 
 def start_view(page: ft.Page):
 
+    if not hasattr(page, "data") or page.data is None:
+        page.data = {}
+
     def go_login(e):
         page.go("/login")
 
@@ -82,7 +85,17 @@ def start_view(page: ft.Page):
         buttons.controls[1].opacity = 1
         page.update()
 
-    page.run_task(animate_logo)
+    animation_seen = page.data.get("start_animation_seen", False)
+
+    if animation_seen:
+        title_text.size = FONT_LG
+        owl.opacity = 1
+        title_text.opacity = 1
+        buttons.controls[0].opacity = 1
+        buttons.controls[1].opacity = 1
+    else:
+        page.data["start_animation_seen"] = True
+        page.run_task(animate_logo)
 
     
 
