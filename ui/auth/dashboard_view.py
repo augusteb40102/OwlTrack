@@ -4,21 +4,79 @@ from ui.themes.themes import *
 RADIUS_LG = 20
 SPACE_LG = 24
 
-
 def dashboard_view(page: ft.Page):
-
     username = "User"
     avatar_src = None
+    user_email = "user@example.com"
 
     if hasattr(page, "data") and page.data:
-        username = page.data.get("register_name", "User")
+        username   = page.data.get("register_name", "User")
         avatar_src = page.data.get("avatar_src", None)
+        user_email = page.data.get("register_email", "user@example.com")
 
-    # Logout funkcija
+    # Logout overlay
+    logout_overlay = ft.Container(
+        visible=False,
+        expand=True,
+        bgcolor=ft.Colors.with_opacity(0.45, ft.Colors.BLACK),
+        alignment=ft.Alignment(0, 0),
+        content=ft.Container(
+            width=300,
+            padding=ft.padding.all(28),
+            border_radius=16,
+            bgcolor=SURFACE,
+            border=ft.border.all(1, BORDER),
+            content=ft.Column(
+                [
+                    ft.Text("Log Out", size=18, weight="bold", color=TEXT_PRIMARY),
+                    ft.Container(height=8),
+                    ft.Text(
+                        "Are you sure you want to log out?",
+                        size=13,
+                        color=TEXT_SECONDARY,
+                    ),
+                    ft.Container(height=24),
+                    ft.Row(
+                        [
+                            ft.Container(
+                                content=ft.Text("Cancel", size=13, color=TEXT_SECONDARY, weight="w600"),
+                                on_click=lambda e: hide_overlay(),
+                                ink=True,
+                                border_radius=8,
+                                padding=ft.padding.symmetric(horizontal=20, vertical=10),
+                                border=ft.border.all(1, BORDER),
+                            ),
+                            ft.Container(
+                                content=ft.Text("Log Out", size=13, color=TEXT_ON_PRIMARY, weight="w600"),
+                                on_click=lambda e: page.go("/login"),
+                                ink=True,
+                                border_radius=8,
+                                padding=ft.padding.symmetric(horizontal=20, vertical=10),
+                                bgcolor=PRIMARY,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.END,
+                        spacing=10,
+                    ),
+                ],
+                spacing=0,
+                tight=True,
+            ),
+        ),
+    )
+
+    def show_overlay():
+        logout_overlay.visible = True
+        page.update()
+
+    def hide_overlay():
+        logout_overlay.visible = False
+        page.update()
+
     def logout(e):
-        page.go("/login")
+        show_overlay()
 
-    # Avatar
+    # Avatar widget
     if avatar_src:
         avatar_widget = ft.Image(
             src=avatar_src,
@@ -42,38 +100,80 @@ def dashboard_view(page: ft.Page):
             alignment=ft.Alignment(0, 0),
         )
 
-    # Viršus — OwlTrack + profilis
+    # Email row – pradžioje paslėptas
+    email_container = ft.Container(
+        content=ft.Text(
+            user_email,
+            size=11,
+            color=TEXT_ON_PRIMARY,
+            opacity=0.75,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        height=0,
+        opacity=0,
+        animate=ft.Animation(250, ft.AnimationCurve.EASE_OUT),
+        animate_opacity=ft.Animation(250, ft.AnimationCurve.EASE_OUT),
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        alignment=ft.Alignment(0, 0),
+    )
+
+    arrow_icon = ft.Icon(
+        icon=ft.Icons.KEYBOARD_ARROW_DOWN,
+        color=TEXT_ON_PRIMARY,
+        size=16,
+        opacity=0.7,
+    )
+
+    expanded = [False]
+
+    def toggle_email(e):
+        expanded[0] = not expanded[0]
+        if expanded[0]:
+            email_container.height = 22
+            email_container.opacity = 1
+            arrow_icon.icon = ft.Icons.KEYBOARD_ARROW_UP
+        else:
+            email_container.height = 0
+            email_container.opacity = 0
+            arrow_icon.icon = ft.Icons.KEYBOARD_ARROW_DOWN
+        page.update()
+
+    username_row = ft.Container(
+        content=ft.Row(
+            [
+                ft.Text(username, size=15, weight="bold", color=TEXT_ON_PRIMARY),
+                arrow_icon,
+            ],
+            spacing=2,
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        on_click=toggle_email,
+        ink=True,
+        border_radius=6,
+        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+    )
+
     top = ft.Column(
         [
             ft.Container(
-                content=ft.Text(
-                    "OwlTrack",
-                    size=24,
-                    weight="bold",
-                    color=TEXT_ON_PRIMARY,
-                ),
+                content=ft.Text("OwlTrack", size=24, weight="bold", color=TEXT_ON_PRIMARY),
                 padding=ft.padding.only(top=20, bottom=20),
                 alignment=ft.Alignment(0, 0),
             ),
             avatar_widget,
             ft.Container(height=8),
-            ft.Text(
-                username,
-                size=15,
-                weight="bold",
-                color=TEXT_ON_PRIMARY,
-                text_align=ft.TextAlign.CENTER,
-            ),
+            username_row,
+            email_container,
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=0,
     )
 
-    # Apačia — Log Out mygtukas
     bottom = ft.Container(
         content=ft.Row(
             [
-                ft.Icon(ft.Icons.DOOR_FRONT_DOOR, color=TEXT_ON_PRIMARY, size=20),
+                ft.Image(src="logout_icon.png", width=20, height=20, fit="contain"),
                 ft.Text("Log Out", size=14, color=TEXT_ON_PRIMARY, weight="w600"),
             ],
             spacing=10,
@@ -122,9 +222,15 @@ def dashboard_view(page: ft.Page):
     return ft.View(
         route="/dashboard",
         controls=[
-            ft.Row(
-                [sidebar, main_content],
-                spacing=0,
+            ft.Stack(
+                [
+                    ft.Row(
+                        [sidebar, main_content],
+                        spacing=0,
+                        expand=True,
+                    ),
+                    logout_overlay,
+                ],
                 expand=True,
             )
         ],
