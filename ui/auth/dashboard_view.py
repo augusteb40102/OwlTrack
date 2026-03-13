@@ -1,6 +1,7 @@
 import flet as ft
 from ui.themes.themes import *
 from database import save_avatar as db_save_avatar
+from database import change_user_password as db_change_user_password
 
 RADIUS_LG = 20
 SPACE_LG = 24
@@ -135,6 +136,116 @@ def dashboard_view(page: ft.Page):
         settings_overlay.visible = False
         page.update()
 
+    def validate_new_password(password: str, old_password: str) -> str | None:
+        if len(password) < 7:
+            return "New password must be at least 7 characters"
+        if not any(c.isupper() for c in password):
+            return "New password must contain at least one uppercase letter"
+        if not any(c.isdigit() for c in password):
+            return "New password must contain at least one number"
+        if password == old_password:
+            return "New password must be different from current password"
+        return None
+
+    old_password_field = ft.TextField(
+        label="Enter current password",
+        width=420,
+        password=True,
+        can_reveal_password=True,
+        bgcolor=SURFACE,
+        border_color=BORDER,
+        focused_border_color=PRIMARY,
+        text_style=ft.TextStyle(color=TEXT_PRIMARY),
+        label_style=ft.TextStyle(color=TEXT_SECONDARY),
+    )
+
+    new_password_field = ft.TextField(
+        label="Enter new password",
+        width=420,
+        password=True,
+        can_reveal_password=True,
+        bgcolor=SURFACE,
+        border_color=BORDER,
+        focused_border_color=PRIMARY,
+        text_style=ft.TextStyle(color=TEXT_PRIMARY),
+        label_style=ft.TextStyle(color=TEXT_SECONDARY),
+    )
+
+    repeat_new_password_field = ft.TextField(
+        label="Repeat new password",
+        width=420,
+        password=True,
+        can_reveal_password=True,
+        bgcolor=SURFACE,
+        border_color=BORDER,
+        focused_border_color=PRIMARY,
+        text_style=ft.TextStyle(color=TEXT_PRIMARY),
+        label_style=ft.TextStyle(color=TEXT_SECONDARY),
+    )
+
+    password_error_text = ft.Text("", color=ERROR, size=12, visible=False)
+    password_success_text = ft.Text("", color=PRIMARY, size=12, visible=False)
+
+    def submit_password_change(e):
+        password_error_text.visible = False
+        password_success_text.visible = False
+        old_password_field.border_color = BORDER
+        new_password_field.border_color = BORDER
+        repeat_new_password_field.border_color = BORDER
+
+        old_password = (old_password_field.value or "").strip()
+        new_password = (new_password_field.value or "").strip()
+        repeat_password = (repeat_new_password_field.value or "").strip()
+
+        if not old_password or not new_password or not repeat_password:
+            password_error_text.value = "All password fields are required"
+            password_error_text.visible = True
+            if not old_password:
+                old_password_field.border_color = ERROR
+            if not new_password:
+                new_password_field.border_color = ERROR
+            if not repeat_password:
+                repeat_new_password_field.border_color = ERROR
+            page.update()
+            return
+
+        new_password_error = validate_new_password(new_password, old_password)
+        if new_password_error:
+            new_password_field.border_color = ERROR
+            password_error_text.value = new_password_error
+            password_error_text.visible = True
+            page.update()
+            return
+
+        if new_password != repeat_password:
+            new_password_field.border_color = ERROR
+            repeat_new_password_field.border_color = ERROR
+            password_error_text.value = "New passwords do not match"
+            password_error_text.visible = True
+            page.update()
+            return
+
+        if not user_email:
+            password_error_text.value = "Unable to identify user account"
+            password_error_text.visible = True
+            page.update()
+            return
+
+        result = db_change_user_password(user_email, old_password, new_password)
+        if not result["success"]:
+            password_error_text.value = result["error"]
+            password_error_text.visible = True
+            old_password_field.border_color = ERROR
+            page.update()
+            return
+
+        password_success_text.value = "Password changed successfully"
+        password_success_text.visible = True
+        old_password_field.value = ""
+        new_password_field.value = ""
+        repeat_new_password_field.value = ""
+        page.update()
+
     # Build avatar grid – same style as profile_photo_view
     avatar_items = []
     for avatar in PROFILE_AVATARS:
@@ -179,7 +290,7 @@ def dashboard_view(page: ft.Page):
 
     settings_window = ft.Container(
         width=520,
-        height=480,
+        height=620,
         border_radius=16,
         bgcolor=SURFACE,
         border=ft.border.all(1, BORDER),
@@ -234,6 +345,34 @@ def dashboard_view(page: ft.Page):
                                 width=420,
                                 height=300,
                             ),
+                            ft.Container(height=20),
+                            ft.Divider(height=1, color=BORDER),
+                            ft.Container(height=16),
+                            ft.Text("Change Password", size=15, weight="bold", color=TEXT_PRIMARY),
+                            ft.Container(height=6),
+                            old_password_field,
+                            ft.Container(height=8),
+                            new_password_field,
+                            ft.Container(height=8),
+                            repeat_new_password_field,
+                            ft.Container(height=8),
+                            password_error_text,
+                            password_success_text,
+                            ft.Container(height=10),
+                            ft.Container(
+                                content=ft.Text("Confirm", size=13, color=TEXT_ON_PRIMARY, weight="w600"),
+                                on_click=submit_password_change,
+                                ink=True,
+                                border_radius=8,
+                                padding=ft.padding.symmetric(horizontal=20, vertical=10),
+                                gradient=ft.LinearGradient(
+                                    begin=ft.Alignment(-1, 0),
+                                    end=ft.Alignment(1, 0),
+                                    colors=[SECONDARY, PRIMARY],
+                                ),
+                                alignment=ft.Alignment(0, 0),
+                                width=150,
+                            ),
                             ft.Container(expand=True),
                             ft.Row(
                                 [
@@ -264,6 +403,7 @@ def dashboard_view(page: ft.Page):
                         ],
                         spacing=0,
                         expand=True,
+                        scroll=ft.ScrollMode.AUTO,
                     ),
                 ),
             ],
@@ -283,7 +423,7 @@ def dashboard_view(page: ft.Page):
     def open_settings(e):
         settings_maximized[0] = False
         settings_window.width  = 520
-        settings_window.height = 480
+        settings_window.height = 620
         settings_window.border_radius = 16
         maximize_icon.icon = ft.Icons.FULLSCREEN
         settings_overlay.visible = True

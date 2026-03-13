@@ -11,7 +11,7 @@ def forgot_password_view(page: ft.Page):
         return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
     email_field = ft.TextField(
-        label="El. pašto adresas",
+        label="Email address",
         width=320,
         bgcolor=SURFACE,
         border_color=BORDER,
@@ -36,21 +36,21 @@ def forgot_password_view(page: ft.Page):
 
     def on_send(e):
         if not email_field.value:
-            error_text.value = "Įveskite el. pašto adresą"
+            error_text.value = "Please enter your email address"
             error_text.visible = True
             success_text.visible = False
             page.update()
             return
 
         if not is_valid_email(email_field.value):
-            error_text.value = "Įveskite teisingą el. pašto adresą"
+            error_text.value = "Please enter a valid email address"
             error_text.visible = True
             success_text.visible = False
             page.update()
             return
 
         error_text.visible = False
-        success_text.value = "Nuoroda išsiųsta į " + email_field.value.strip()
+        success_text.value = "Reset link sent to " + email_field.value.strip()
         success_text.visible = True
         page.update()
 
@@ -69,13 +69,13 @@ def forgot_password_view(page: ft.Page):
                 ),
                 ft.Container(height=SPACE_LG),
                 ft.Text(
-                    "Pamiršau slaptažodį",
+                    "Forgot Password",
                     size=FONT_LG,
                     weight="bold",
                     color=TEXT_PRIMARY,
                 ),
                 ft.Text(
-                    "Įveskite el. paštą ir išsiųsime atkūrimo nuorodą",
+                    "Enter your email and we'll send a reset link",
                     size=FONT_SM,
                     color=TEXT_SECONDARY,
                     text_align=ft.TextAlign.CENTER,
@@ -88,7 +88,7 @@ def forgot_password_view(page: ft.Page):
                 success_text,
                 ft.Container(height=SPACE_SM),
                 ft.ElevatedButton(
-                    "Siųsti nuorodą",
+                    "Send Link",
                     width=320,
                     height=48,
                     style=primary_button_style(),
