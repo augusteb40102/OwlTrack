@@ -90,20 +90,21 @@ def change_user_password(email: str, old_password: str, new_password: str) -> di
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT password FROM users WHERE email = ?", (email,))
-    user = cursor.fetchone()
+    try:
+        cursor.execute("BEGIN")
+        cursor.execute("SELECT password FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
 
-    if not user:
+        if not user or not bcrypt.checkpw(old_password.encode("utf-8"), user["password"].encode("utf-8")):
+            conn.rollback()
+            return {"success": False, "error": "Unable to update password"}
+
+        new_hashed = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        cursor.execute("UPDATE users SET password = ? WHERE email = ?", (new_hashed, email))
+        conn.commit()
+        return {"success": True}
+    except Exception:
+        conn.rollback()
+        return {"success": False, "error": "Unable to update password"}
+    finally:
         conn.close()
-        return {"success": False, "error": "Account with this email does not exist"}
-
-    if not bcrypt.checkpw(old_password.encode("utf-8"), user["password"].encode("utf-8")):
-        conn.close()
-        return {"success": False, "error": "Current password is incorrect"}
-
-    new_hashed = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    cursor.execute("UPDATE users SET password = ? WHERE email = ?", (new_hashed, email))
-
-    conn.commit()
-    conn.close()
-    return {"success": True}
