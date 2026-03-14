@@ -520,6 +520,22 @@ def dashboard_view(page: ft.Page):
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, TEXT_ON_PRIMARY)),
     )
 
+    dashboard_inline_btn = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.DASHBOARD, color=TEXT_ON_PRIMARY, size=14),
+                ft.Text("Dashboard", size=12, color=TEXT_ON_PRIMARY, weight="w500"),
+            ],
+            spacing=6,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        on_click=lambda e: page.go("/dashboard"),
+        ink=True,
+        border_radius=8,
+        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+        border=ft.border.all(1, ft.Colors.with_opacity(0.3, TEXT_ON_PRIMARY)),
+    )
+
     top = ft.Column(
         [
             ft.Container(
@@ -532,6 +548,8 @@ def dashboard_view(page: ft.Page):
             username_row,
             email_container,
             ft.Container(height=10),
+            dashboard_inline_btn,  # ← pridėk
+            ft.Container(height=6),
             settings_inline_btn,
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
