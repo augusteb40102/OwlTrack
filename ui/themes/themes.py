@@ -1,7 +1,7 @@
 import flet as ft
 
 # ─────────────────────────────────────────
-# PURPLE THEME (default)
+# PURPLE THEME
 # ─────────────────────────────────────────
 PURPLE_PRIMARY = "#2D1B69"
 PURPLE_SECONDARY = "#7C3AED"
@@ -53,6 +53,56 @@ GREEN_TEXT_SECONDARY = "#3A7A55"
 GREEN_GRADIENT_COLORS = ["#A0DFB8", "#DEF5E8"]
 
 # ─────────────────────────────────────────
+# THEME MAP
+# ─────────────────────────────────────────
+THEMES = {
+    "purple": {
+        "PRIMARY": PURPLE_PRIMARY,
+        "SECONDARY": PURPLE_SECONDARY,
+        "ACCENT": PURPLE_ACCENT,
+        "BACKGROUND": PURPLE_BACKGROUND,
+        "SURFACE": PURPLE_SURFACE,
+        "BORDER": PURPLE_BORDER,
+        "TEXT_PRIMARY": PURPLE_TEXT_PRIMARY,
+        "TEXT_SECONDARY": PURPLE_TEXT_SECONDARY,
+        "GRADIENT_COLORS": PURPLE_GRADIENT_COLORS,
+    },
+    "blue": {
+        "PRIMARY": BLUE_PRIMARY,
+        "SECONDARY": BLUE_SECONDARY,
+        "ACCENT": BLUE_ACCENT,
+        "BACKGROUND": BLUE_BACKGROUND,
+        "SURFACE": BLUE_SURFACE,
+        "BORDER": BLUE_BORDER,
+        "TEXT_PRIMARY": BLUE_TEXT_PRIMARY,
+        "TEXT_SECONDARY": BLUE_TEXT_SECONDARY,
+        "GRADIENT_COLORS": BLUE_GRADIENT_COLORS,
+    },
+    "grey": {
+        "PRIMARY": GREY_PRIMARY,
+        "SECONDARY": GREY_SECONDARY,
+        "ACCENT": GREY_ACCENT,
+        "BACKGROUND": GREY_BACKGROUND,
+        "SURFACE": GREY_SURFACE,
+        "BORDER": GREY_BORDER,
+        "TEXT_PRIMARY": GREY_TEXT_PRIMARY,
+        "TEXT_SECONDARY": GREY_TEXT_SECONDARY,
+        "GRADIENT_COLORS": GREY_GRADIENT_COLORS,
+    },
+    "green": {
+        "PRIMARY": GREEN_PRIMARY,
+        "SECONDARY": GREEN_SECONDARY,
+        "ACCENT": GREEN_ACCENT,
+        "BACKGROUND": GREEN_BACKGROUND,
+        "SURFACE": GREEN_SURFACE,
+        "BORDER": GREEN_BORDER,
+        "TEXT_PRIMARY": GREEN_TEXT_PRIMARY,
+        "TEXT_SECONDARY": GREEN_TEXT_SECONDARY,
+        "GRADIENT_COLORS": GREEN_GRADIENT_COLORS,
+    },
+}
+
+# ─────────────────────────────────────────
 # ACTIVE THEME (default: purple)
 # ─────────────────────────────────────────
 PRIMARY = PURPLE_PRIMARY
@@ -64,7 +114,7 @@ BORDER = PURPLE_BORDER
 TEXT_PRIMARY = PURPLE_TEXT_PRIMARY
 TEXT_SECONDARY = PURPLE_TEXT_SECONDARY
 GRADIENT_COLORS = PURPLE_GRADIENT_COLORS
- 
+
 # Nepriklauso nuo temos
 TEXT_ON_PRIMARY = "#FFFFFF"
 TEXT_ON_SURFACE = "#2D1B69"
@@ -73,6 +123,28 @@ SUCCESS = "#22c55e"
 TRANSPARENT = ft.Colors.TRANSPARENT
 OVERLAY_SURFACE = "#1A1A2E80"
 BACKGROUND_DARK = "#0D0D1A"
+
+# ─────────────────────────────────────────
+# THEME APPLY FUNCTION
+# Iškviečiama vienoje vietoje, atnaujina
+# visus globalius kintamuosius šiame modulyje
+# ─────────────────────────────────────────
+import sys
+
+def apply_theme(theme_name: str):
+    """
+    Pritaiko temą – atnaujina visus globalius spalvų
+    kintamuosius šiame modulyje.
+    Naudok: from ui.themes.themes import apply_theme; apply_theme("blue")
+    """
+    theme_name = theme_name.lower()
+    t = THEMES.get(theme_name, THEMES["purple"])
+    mod = sys.modules[__name__]
+    for key, value in t.items():
+        setattr(mod, key, value)
+    # TEXT_ON_SURFACE visada seka PRIMARY
+    mod.TEXT_ON_SURFACE = t["PRIMARY"]
+
 
 # ─────────────────────────────────────────
 # OWL COLORS
@@ -88,12 +160,12 @@ OWL_BEAK = "#F59E0B"
 # ─────────────────────────────────────────
 # FONT SIZES
 # ─────────────────────────────────────────
-FONT_XL = 42     # Logotipas / Hero title
-FONT_LG = 32     # Puslapio antraštė
-FONT_MD = 20     # Sekcijų pavadinimai
-FONT_SM = 16     # Subtitrai
-FONT_XS = 14     # Paprastas tekstas
-FONT_XXS = 12    # Smulkus tekstas
+FONT_XL = 42
+FONT_LG = 32
+FONT_MD = 20
+FONT_SM = 16
+FONT_XS = 14
+FONT_XXS = 12
 
 # ─────────────────────────────────────────
 # SPACING
@@ -110,7 +182,7 @@ SPACE_XL = 40
 RADIUS_SM = 6
 RADIUS_MD = 10
 RADIUS_LG = 16
-RADIUS_FULL = 999  # Apvalūs mygtukai
+RADIUS_FULL = 999
 
 # ─────────────────────────────────────────
 # GRADIENTS
