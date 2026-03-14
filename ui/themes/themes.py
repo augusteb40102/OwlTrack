@@ -1,30 +1,89 @@
 import flet as ft
 
 # ─────────────────────────────────────────
-# COLORS
+# PURPLE THEME (default)
 # ─────────────────────────────────────────
-PRIMARY = "#2D1B69"       # Tamsi violetinė
-SECONDARY = "#7C3AED"     # Violetinė
-ACCENT = "#3b82f6"        # Mėlynas akcentas
+PURPLE_PRIMARY = "#2D1B69"
+PURPLE_SECONDARY = "#7C3AED"
+PURPLE_ACCENT = "#3b82f6"
+PURPLE_BACKGROUND = "#E8DEFF"
+PURPLE_SURFACE = "#F3EEFF"
+PURPLE_BORDER = "#2D1B69"
+PURPLE_TEXT_PRIMARY = "#1a1040"
+PURPLE_TEXT_SECONDARY = "#6B5A9E"
+PURPLE_GRADIENT_COLORS = ["#C4B0FF", "#E8DEFF"]
 
-BACKGROUND = "#E8DEFF"    # Šviesiai violetinis
-SURFACE = "#F3EEFF"       # Kortelių, inputų fonas
-BORDER = "#2D1B69"        # Kraštinės
+# ─────────────────────────────────────────
+# BLUE THEME
+# ─────────────────────────────────────────
+BLUE_PRIMARY = "#1B3A69"
+BLUE_SECONDARY = "#3A7AED"
+BLUE_ACCENT = "#60a5fa"
+BLUE_BACKGROUND = "#DEE8FF"
+BLUE_SURFACE = "#EEF3FF"
+BLUE_BORDER = "#1B3A69"
+BLUE_TEXT_PRIMARY = "#0F1F40"
+BLUE_TEXT_SECONDARY = "#3A5A9E"
+BLUE_GRADIENT_COLORS = ["#A0B8FF", "#DEE8FF"]
 
-TEXT_PRIMARY = "#1a1040"    # Tamsus tekstas
-TEXT_SECONDARY = "#6B5A9E"  # Antrinis violetinis tekstas
-TEXT_ON_PRIMARY = "#FFFFFF" # Tekstas ant tamsių mygtukų
-TEXT_ON_SURFACE = "#2D1B69" # Tekstas ant šviesių mygtukų
+# ─────────────────────────────────────────
+# GREY THEME
+# ─────────────────────────────────────────
+GREY_PRIMARY = "#2D2D2D"
+GREY_SECONDARY = "#5A5A5A"
+GREY_ACCENT = "#9ca3af"
+GREY_BACKGROUND = "#E8E8E8"
+GREY_SURFACE = "#F3F3F3"
+GREY_BORDER = "#2D2D2D"
+GREY_TEXT_PRIMARY = "#1a1a1a"
+GREY_TEXT_SECONDARY = "#6B6B6B"
+GREY_GRADIENT_COLORS = ["#C4C4C4", "#E8E8E8"]
 
-ERROR = "#ef4444"         # Klaidos
-SUCCESS = "#22c55e"       # Sėkmė
+# ─────────────────────────────────────────
+# GREEN THEME
+# ─────────────────────────────────────────
+GREEN_PRIMARY = "#1B5E35"
+GREEN_SECONDARY = "#22c55e"
+GREEN_ACCENT = "#4ade80"
+GREEN_BACKGROUND = "#DEF5E8"
+GREEN_SURFACE = "#EEF9F2"
+GREEN_BORDER = "#1B5E35"
+GREEN_TEXT_PRIMARY = "#0F2B1A"
+GREEN_TEXT_SECONDARY = "#3A7A55"
+GREEN_GRADIENT_COLORS = ["#A0DFB8", "#DEF5E8"]
+
+# ─────────────────────────────────────────
+# ACTIVE THEME (default: purple)
+# ─────────────────────────────────────────
+PRIMARY = PURPLE_PRIMARY
+SECONDARY = PURPLE_SECONDARY
+ACCENT = PURPLE_ACCENT
+BACKGROUND = PURPLE_BACKGROUND
+SURFACE = PURPLE_SURFACE
+BORDER = PURPLE_BORDER
+TEXT_PRIMARY = PURPLE_TEXT_PRIMARY
+TEXT_SECONDARY = PURPLE_TEXT_SECONDARY
+GRADIENT_COLORS = PURPLE_GRADIENT_COLORS
+ 
+# Nepriklauso nuo temos
+TEXT_ON_PRIMARY = "#FFFFFF"
+TEXT_ON_SURFACE = "#2D1B69"
+ERROR = "#ef4444"
+SUCCESS = "#22c55e"
 TRANSPARENT = ft.Colors.TRANSPARENT
-
-# Specifinės UI spalvos
 OVERLAY_SURFACE = "#1A1A2E80"
 BACKGROUND_DARK = "#0D0D1A"
 
-GRADIENT_COLORS = ["#C4B0FF", "#E8DEFF"]
+# ─────────────────────────────────────────
+# OWL COLORS
+# ─────────────────────────────────────────
+OWL_BODY = "#7C3AED"
+OWL_HEAD = "#6D28D9"
+OWL_WING = "#5B21B6"
+OWL_BELLY = "#DDD6FE"
+OWL_EYE = "#FDE68A"
+OWL_PUPIL = "#1C1917"
+OWL_BEAK = "#F59E0B"
 
 # ─────────────────────────────────────────
 # FONT SIZES
