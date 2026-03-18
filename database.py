@@ -1,8 +1,16 @@
 import sqlite3
 import os
+import sys
 import bcrypt
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "owltrack.db")
+if getattr(sys, 'frozen', False):
+    # .exe - eik vienu lygiu aukštyn iš dist/ į projekto aplanką
+    BASE_DIR = os.path.dirname(os.path.dirname(sys.executable))
+else:
+    # python main.py
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(BASE_DIR, "owltrack.db")
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -61,8 +69,6 @@ def save_avatar(email: str, avatar_src: str) -> None:
     conn.commit()
     conn.close()
 
-# ── NAUJOS FUNKCIJOS ──────────────────────────────────────────────────────────
-
 def save_theme(email: str, theme: str) -> None:
     conn = get_connection()
     cursor = conn.cursor()
@@ -77,8 +83,6 @@ def get_theme(email: str) -> str:
     row = cursor.fetchone()
     conn.close()
     return row["theme"] if row and row["theme"] else "purple"
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 def login_user(email: str, password: str) -> dict:
     conn = get_connection()

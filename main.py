@@ -12,6 +12,7 @@ def main(page: ft.Page):
     page.title = "OwlTrack"
     page.padding = 0
     page.spacing = 0
+    page.window.icon = "assets/owl_clean.ico"
 
     def route_change(route):
         page.views.clear()
@@ -26,11 +27,11 @@ def main(page: ft.Page):
         elif page.route == "/profile-photo":
             page.views.append(profile_photo_view(page))
         elif page.route == "/dashboard":
-             page.views.append(dashboard_view(page))
+            page.views.append(dashboard_view(page))
         page.update()
 
     page.on_route_change = route_change
     route_change(page.route)
     page.update()
-    
+
 ft.run(main, assets_dir="assets")
