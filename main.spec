@@ -35,6 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='C:\\Users\\auste\\AppData\\Local\\Temp\\cd2aaa8c-5b61-47e1-ade8-22aab67d79bb',
+    version='C:\\Users\\auste\\AppData\\Local\\Temp\\87aeeecf-301d-4326-929a-f1d07de4b6ea',
     icon=['assets\\owl_clean.ico'],
 )

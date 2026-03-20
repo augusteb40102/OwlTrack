@@ -1,13 +1,14 @@
 import flet as ft
 import ui.themes.themes as th
 from ui.themes.themes import apply_theme, THEMES
+from ui.components.calendar_widget import build_calendar
 from database import save_avatar as db_save_avatar
 from database import change_user_password as db_change_user_password
 from database import save_theme as db_save_theme
 from database import get_theme as db_get_theme
 
 RADIUS_LG = 20
-SPACE_LG = 24
+SPACE_LG  = 24
 
 PROFILE_AVATARS = [
     {"id": 1, "src": "greenpele.png",  "name": "Green"},
@@ -65,6 +66,54 @@ def dashboard_view(page: ft.Page):
             selected_id[0] = av["id"]
             break
 
+    # ── MAIN PANEL (keičiamas tarp home ir detail) ────────────────────
+    main_panel = ft.Container(expand=True)
+
+    # ── CALENDAR ─────────────────────────────────────────────────────
+    compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
+        build_calendar(page, c, grad, main_panel)
+
+    # ── HOME PANEL ────────────────────────────────────────────────────
+    widget_placeholder_1 = ft.Container(
+        expand=True,
+        border_radius=RADIUS_LG,
+        bgcolor=th.TEXT_ON_PRIMARY,
+        border=ft.border.all(2, c("BORDER")),
+        padding=ft.padding.all(16),
+    )
+
+    widget_placeholder_2 = ft.Container(
+        expand=True,
+        border_radius=RADIUS_LG,
+        bgcolor=th.TEXT_ON_PRIMARY,
+        border=ft.border.all(2, c("BORDER")),
+        padding=ft.padding.all(16),
+    )
+
+    right_column = ft.Column(
+        [widget_placeholder_1, widget_placeholder_2],
+        spacing=12,
+        expand=False,
+        width=280,
+    )
+
+    home_panel = ft.Container(
+        expand=True,
+        content=ft.Row(
+            [
+                compact_calendar,
+                ft.Container(width=12),
+                right_column,
+            ],
+            spacing=0,
+            expand=True,
+            vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+        ),
+    )
+
+    main_panel.content = home_panel
+    set_home_panel(home_panel)
+
     # ── AVATAR WIDGET ─────────────────────────────────────────────────
     def build_avatar_content(src):
         if src:
@@ -109,9 +158,7 @@ def dashboard_view(page: ft.Page):
         border=ft.border.all(1, c("BORDER")),
         content=ft.Column(
             [
-                logout_title,
-                ft.Container(height=8),
-                logout_subtitle,
+                logout_title, ft.Container(height=8), logout_subtitle,
                 ft.Container(height=24),
                 ft.Row([logout_cancel_btn, logout_confirm_btn],
                        alignment=ft.MainAxisAlignment.END, spacing=10),
@@ -166,7 +213,6 @@ def dashboard_view(page: ft.Page):
             maximize_icon.icon = ft.Icons.FULLSCREEN
         page.update()
 
-    # ── THEME SWITCHER ────────────────────────────────────────────────
     def on_theme_select(theme_id: str):
         selected_theme[0] = theme_id
         for tid, row in theme_btns.items():
@@ -180,12 +226,10 @@ def dashboard_view(page: ft.Page):
         items = []
         for opt in THEME_OPTIONS:
             is_active = opt["id"] == selected_theme[0]
-            dot = ft.Container(width=14, height=14, border_radius=7, bgcolor=opt["dot"])
-            label = ft.Text(
-                opt["label"], size=12, color=c("TEXT_PRIMARY"),
-                weight="bold" if is_active else "w400",
-            )
-            row = ft.Row([dot, label], spacing=6, alignment=ft.MainAxisAlignment.CENTER)
+            dot   = ft.Container(width=14, height=14, border_radius=7, bgcolor=opt["dot"])
+            label = ft.Text(opt["label"], size=12, color=c("TEXT_PRIMARY"),
+                            weight="bold" if is_active else "w400")
+            row   = ft.Row([dot, label], spacing=6, alignment=ft.MainAxisAlignment.CENTER)
             theme_btns[opt["id"]] = row
             btn = ft.Container(
                 content=row,
@@ -199,7 +243,6 @@ def dashboard_view(page: ft.Page):
             items.append(btn)
         return ft.Row(items, spacing=8, wrap=True)
 
-    # ── PASSWORD LAUKAI ───────────────────────────────────────────────
     old_password_field = ft.TextField(
         label="Enter current password", width=420,
         password=True, can_reveal_password=True,
@@ -227,14 +270,12 @@ def dashboard_view(page: ft.Page):
     password_error_text   = ft.Text("", color=th.ERROR,     size=12, visible=False)
     password_success_text = ft.Text("", color=c("PRIMARY"), size=12, visible=False)
 
-    # Settings mygtukų ref'ai
     confirm_pw_btn = ft.Container(
         content=ft.Text("Confirm", size=13, color=c("TEXT_ON_PRIMARY"), weight="w600"),
         on_click=lambda e: submit_password_change(e),
         ink=True, border_radius=8,
         padding=ft.padding.symmetric(horizontal=20, vertical=10),
-        gradient=grad(),
-        alignment=ft.Alignment(0, 0), width=150,
+        gradient=grad(), alignment=ft.Alignment(0, 0), width=150,
     )
     settings_cancel_btn = ft.Container(
         content=ft.Text("Cancel", size=13, color=c("TEXT_SECONDARY"), weight="w600"),
@@ -251,7 +292,7 @@ def dashboard_view(page: ft.Page):
         gradient=grad(),
     )
 
-    # ── SAVE ──────────────────────────────────────────────────────────
+    # ── SAVE SETTINGS ────────────────────────────────────────────────
     def save_settings(e):
         # 1. Avataro išsaugojimas
         if selected_id[0] is not None:
@@ -271,65 +312,76 @@ def dashboard_view(page: ft.Page):
         if hasattr(page, "data") and page.data is not None:
             page.data["theme"] = new_theme
 
-        # 3. apply_theme ir VISI widgetai
         apply_theme(new_theme)
 
         # Sidebar
         sidebar.bgcolor                     = c("PRIMARY")
         sidebar.content.controls[0].bgcolor = c("PRIMARY")
         logout_btn.gradient                 = grad()
+        main_content.bgcolor                = c("SURFACE")
 
-        # Main content
-        main_content.bgcolor        = c("SURFACE")
-        main_content.content.border = ft.border.all(1, c("BORDER"))
-
-        # Settings langas
-        settings_title_bar.bgcolor = c("PRIMARY")
-        settings_window.bgcolor    = c("SURFACE")
-        settings_window.border     = ft.border.all(1, c("BORDER"))
-
-        # Settings mygtukų gradientai
-        confirm_pw_btn.gradient     = grad()
-        settings_save_btn.gradient  = grad()
-        settings_cancel_btn.border  = ft.border.all(1, c("BORDER"))
+        # Settings
+        settings_title_bar.bgcolor        = c("PRIMARY")
+        settings_window.bgcolor           = c("SURFACE")
+        settings_window.border            = ft.border.all(1, c("BORDER"))
+        confirm_pw_btn.gradient           = grad()
+        settings_save_btn.gradient        = grad()
+        settings_cancel_btn.border        = ft.border.all(1, c("BORDER"))
         settings_cancel_btn.content.color = c("TEXT_SECONDARY")
 
-        # Logout overlay
-        logout_dialog_box.bgcolor  = c("SURFACE")
-        logout_dialog_box.border   = ft.border.all(1, c("BORDER"))
-        logout_title.color         = c("TEXT_PRIMARY")
-        logout_subtitle.color      = c("TEXT_SECONDARY")
-        logout_cancel_btn.border   = ft.border.all(1, c("BORDER"))
+        # Logout
+        logout_dialog_box.bgcolor        = c("SURFACE")
+        logout_dialog_box.border         = ft.border.all(1, c("BORDER"))
+        logout_title.color               = c("TEXT_PRIMARY")
+        logout_subtitle.color            = c("TEXT_SECONDARY")
+        logout_cancel_btn.border         = ft.border.all(1, c("BORDER"))
         logout_cancel_btn.content.color  = c("TEXT_SECONDARY")
-        logout_confirm_btn.bgcolor = c("PRIMARY")
+        logout_confirm_btn.bgcolor       = c("PRIMARY")
 
-        # Password laukai
+        # Password
         for field in [old_password_field, new_password_field, repeat_new_password_field]:
             field.bgcolor              = c("SURFACE")
             field.border_color         = c("BORDER")
             field.focused_border_color = c("PRIMARY")
             field.text_style           = ft.TextStyle(color=c("TEXT_PRIMARY"))
             field.label_style          = ft.TextStyle(color=c("TEXT_SECONDARY"))
-
         password_success_text.color = c("PRIMARY")
 
-        # Avatar grid apibraukimai
+        # Avatar grid
         for aid, container in avatar_refs.items():
-            if aid == selected_id[0]:
-                container.border = ft.border.all(3, c("SECONDARY"))
-            else:
-                container.border = ft.border.all(3, ft.Colors.TRANSPARENT)
+            container.border  = ft.border.all(3, c("SECONDARY") if aid == selected_id[0] else ft.Colors.TRANSPARENT)
+            container.bgcolor = c("SURFACE")
 
-        # Theme picker mygtukų apibraukimai
+        # Theme picker
         for tid, row in theme_btns.items():
             is_active = tid == selected_theme[0]
-            row.parent.border = ft.border.all(2, c("SECONDARY") if is_active else ft.Colors.with_opacity(0.15, c("TEXT_PRIMARY")))
+            row.parent.border      = ft.border.all(2, c("SECONDARY") if is_active else ft.Colors.with_opacity(0.15, c("TEXT_PRIMARY")))
             row.controls[1].weight = "bold" if is_active else "w400"
+
+        # Placeholders
+        widget_placeholder_1.border = ft.border.all(2, c("BORDER"))
+        widget_placeholder_2.border = ft.border.all(2, c("BORDER"))
+
+        # Kalendorius — atnaujina visus refs ir perkuria grid'us
+        cal_refs = get_cal_refs()
+        cal_refs["compact_calendar"].border      = ft.border.all(2, c("BORDER"))
+        cal_refs["compact_month_label"].color    = c("TEXT_PRIMARY")
+        cal_refs["compact_year_label"].color     = c("TEXT_PRIMARY")
+        cal_refs["cal_prev_icon"].color          = c("TEXT_PRIMARY")
+        cal_refs["cal_next_icon"].color          = c("TEXT_PRIMARY")
+        cal_refs["yr_prev_icon"].color           = c("TEXT_PRIMARY")
+        cal_refs["yr_next_icon"].color           = c("TEXT_PRIMARY")
+        cal_refs["detail_view_panel"].border     = ft.border.all(1, c("BORDER"))
+        cal_refs["detail_header_box"].gradient   = grad()
+        cal_refs["detail_back_btn"].gradient     = grad()
+        cal_refs["detail_prev_btn"].content.color = c("TEXT_PRIMARY")
+        cal_refs["detail_next_btn"].content.color = c("TEXT_PRIMARY")
+        cal_refs["detail_month_label"].color     = c("TEXT_PRIMARY")
+        refresh_cal_theme()
 
         settings_overlay.visible = False
         page.update()
 
-    # ── PASSWORD VALIDACIJA ───────────────────────────────────────────
     def validate_new_password(password: str, old_password: str):
         if len(password) < 7:
             return "New password must be at least 7 characters"
@@ -403,17 +455,13 @@ def dashboard_view(page: ft.Page):
     for avatar in PROFILE_AVATARS:
         is_selected = avatar["id"] == selected_id[0]
         img       = ft.Image(src=avatar["src"], width=90, height=90, fit="contain")
-        name_text = ft.Text(
-            avatar["name"], size=11, color=c("TEXT_SECONDARY"),
-            text_align=ft.TextAlign.CENTER, weight="w500",
-        )
+        name_text = ft.Text(avatar["name"], size=11, color=c("TEXT_SECONDARY"),
+                            text_align=ft.TextAlign.CENTER, weight="w500")
         container = ft.Container(
-            content=ft.Column(
-                [img, name_text],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6,
-            ),
+            content=ft.Column([img, name_text],
+                              horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6),
             width=115, height=130, border_radius=12,
-            bgcolor=th.OVERLAY_SURFACE,
+            bgcolor=c("SURFACE"),
             border=ft.border.all(3, c("SECONDARY") if is_selected else ft.Colors.TRANSPARENT),
             scale=1.08 if is_selected else 1.0,
             alignment=ft.Alignment(0, 0),
@@ -425,14 +473,10 @@ def dashboard_view(page: ft.Page):
         avatar_refs[avatar["id"]] = container
         avatar_items.append(container)
 
-    avatar_grid = ft.GridView(
-        controls=avatar_items, runs_count=3,
-        max_extent=130, spacing=16, run_spacing=16, expand=False,
-    )
-
+    avatar_grid  = ft.GridView(controls=avatar_items, runs_count=3,
+                               max_extent=130, spacing=16, run_spacing=16, expand=False)
     theme_picker = build_theme_picker()
 
-    # Settings title bar
     settings_title_bar = ft.Container(
         bgcolor=c("PRIMARY"),
         padding=ft.padding.symmetric(horizontal=16, vertical=10),
@@ -463,8 +507,7 @@ def dashboard_view(page: ft.Page):
             [
                 settings_title_bar,
                 ft.Container(
-                    expand=True,
-                    padding=ft.padding.all(28),
+                    expand=True, padding=ft.padding.all(28),
                     content=ft.Column(
                         [
                             ft.Text("App Theme", size=15, weight="bold", color=c("TEXT_PRIMARY")),
@@ -475,7 +518,6 @@ def dashboard_view(page: ft.Page):
                             ft.Container(height=20),
                             ft.Divider(height=1, color=c("BORDER")),
                             ft.Container(height=16),
-
                             ft.Text("Change Profile Photo", size=15, weight="bold", color=c("TEXT_PRIMARY")),
                             ft.Container(height=4),
                             ft.Text("Select an avatar below", size=12, color=c("TEXT_SECONDARY")),
@@ -484,7 +526,6 @@ def dashboard_view(page: ft.Page):
                             ft.Container(height=20),
                             ft.Divider(height=1, color=c("BORDER")),
                             ft.Container(height=16),
-
                             ft.Text("Change Password", size=15, weight="bold", color=c("TEXT_PRIMARY")),
                             ft.Container(height=6),
                             old_password_field,
@@ -498,10 +539,8 @@ def dashboard_view(page: ft.Page):
                             ft.Container(height=10),
                             confirm_pw_btn,
                             ft.Container(expand=True),
-                            ft.Row(
-                                [settings_cancel_btn, settings_save_btn],
-                                alignment=ft.MainAxisAlignment.END, spacing=10,
-                            ),
+                            ft.Row([settings_cancel_btn, settings_save_btn],
+                                   alignment=ft.MainAxisAlignment.END, spacing=10),
                         ],
                         spacing=0, expand=True, scroll=ft.ScrollMode.AUTO,
                     ),
@@ -527,12 +566,9 @@ def dashboard_view(page: ft.Page):
         settings_overlay.visible = True
         page.update()
 
-    # ── EMAIL EXPAND ──────────────────────────────────────────────────
     email_container = ft.Container(
-        content=ft.Text(
-            user_email, size=11, color=c("TEXT_ON_PRIMARY"), opacity=0.75,
-            text_align=ft.TextAlign.CENTER,
-        ),
+        content=ft.Text(user_email, size=11, color=c("TEXT_ON_PRIMARY"), opacity=0.75,
+                        text_align=ft.TextAlign.CENTER),
         height=0, opacity=0,
         animate=ft.Animation(250, ft.AnimationCurve.EASE_OUT),
         animate_opacity=ft.Animation(250, ft.AnimationCurve.EASE_OUT),
@@ -557,10 +593,7 @@ def dashboard_view(page: ft.Page):
 
     username_row = ft.Container(
         content=ft.Row(
-            [
-                ft.Text(username, size=15, weight="bold", color=c("TEXT_ON_PRIMARY")),
-                arrow_icon,
-            ],
+            [ft.Text(username, size=15, weight="bold", color=c("TEXT_ON_PRIMARY")), arrow_icon],
             spacing=2, alignment=ft.MainAxisAlignment.CENTER,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         ),
@@ -570,10 +603,8 @@ def dashboard_view(page: ft.Page):
 
     settings_inline_btn = ft.Container(
         content=ft.Row(
-            [
-                ft.Icon(ft.Icons.SETTINGS, color=c("TEXT_ON_PRIMARY"), size=14),
-                ft.Text("Settings", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500"),
-            ],
+            [ft.Icon(ft.Icons.SETTINGS, color=c("TEXT_ON_PRIMARY"), size=14),
+             ft.Text("Settings", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500")],
             spacing=6, alignment=ft.MainAxisAlignment.CENTER,
         ),
         on_click=open_settings, ink=True, border_radius=8,
@@ -583,10 +614,8 @@ def dashboard_view(page: ft.Page):
 
     dashboard_inline_btn = ft.Container(
         content=ft.Row(
-            [
-                ft.Icon(ft.Icons.DASHBOARD, color=c("TEXT_ON_PRIMARY"), size=14),
-                ft.Text("Dashboard", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500"),
-            ],
+            [ft.Icon(ft.Icons.DASHBOARD, color=c("TEXT_ON_PRIMARY"), size=14),
+             ft.Text("Dashboard", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500")],
             spacing=6, alignment=ft.MainAxisAlignment.CENTER,
         ),
         on_click=lambda e: page.go("/dashboard"),
@@ -617,10 +646,8 @@ def dashboard_view(page: ft.Page):
 
     logout_btn = ft.Container(
         content=ft.Row(
-            [
-                ft.Image(src="logout_icon.png", width=20, height=20, fit="contain"),
-                ft.Text("Log Out", size=14, color=c("TEXT_ON_PRIMARY"), weight="w600"),
-            ],
+            [ft.Image(src="logout_icon.png", width=20, height=20, fit="contain"),
+             ft.Text("Log Out", size=14, color=c("TEXT_ON_PRIMARY"), weight="w600")],
             spacing=10, alignment=ft.MainAxisAlignment.CENTER,
         ),
         width=180, height=44, border_radius=10,
@@ -631,8 +658,7 @@ def dashboard_view(page: ft.Page):
     )
 
     sidebar = ft.Container(
-        width=220,
-        bgcolor=c("PRIMARY"),
+        width=220, bgcolor=c("PRIMARY"),
         content=ft.Stack(
             [
                 ft.Container(expand=True, bgcolor=c("PRIMARY")),
@@ -647,12 +673,7 @@ def dashboard_view(page: ft.Page):
         expand=True,
         bgcolor=c("SURFACE"),
         padding=SPACE_LG,
-        content=ft.Container(
-            expand=True,
-            border_radius=RADIUS_LG,
-            bgcolor=th.TEXT_ON_PRIMARY,
-            border=ft.border.all(1, c("BORDER")),
-        ),
+        content=main_panel,
     )
 
     return ft.View(
