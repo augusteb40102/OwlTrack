@@ -47,6 +47,14 @@ def login_view(page: ft.Page):
         label_style=ft.TextStyle(color=_TEXT_SECONDARY),
     )
 
+    remember_me_checkbox = ft.Checkbox(
+        label="Remember Me",
+        value=False,
+        active_color=_PRIMARY,
+        check_color=_TEXT_ON_PRIMARY,
+        label_style=ft.TextStyle(color=_TEXT_SECONDARY, size=FONT_XS),
+    )
+
     error_text = ft.Text("", color=_ERROR, size=FONT_XS, visible=False)
 
     def on_login(e):
@@ -75,6 +83,7 @@ def login_view(page: ft.Page):
         page.data["register_email"] = result["user"]["email"]
         page.data["avatar_src"]     = result["user"]["avatar_src"]
         page.data["theme"]          = result["user"].get("theme", "purple")
+        page.data["remember_me"]    = bool(remember_me_checkbox.value)
         page.go("/dashboard")
 
     content = ft.Container(
@@ -97,6 +106,11 @@ def login_view(page: ft.Page):
                 email_field,
                 ft.Container(height=SPACE_SM),
                 password_field,
+                ft.Container(
+                    content=remember_me_checkbox,
+                    width=320,
+                    alignment=ft.Alignment(-1, 0),
+                ),
                 ft.Container(
                     content=ft.TextButton(
                         "Forgot password?",
