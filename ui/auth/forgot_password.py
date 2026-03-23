@@ -1,6 +1,7 @@
 import flet as ft
 import re
 from ui.themes.backgrounds import auth_background
+from logic.email_service import send_reset_email, generate_reset_token
 
 # ── Fiksuotos purple spalvos – nesikeičia su tema ─────────────────────────────
 _PRIMARY         = "#2D1B69"
@@ -43,6 +44,7 @@ def forgot_password_view(page: ft.Page):
     error_text   = ft.Text("", color=_ERROR,   size=FONT_XS, visible=False)
 
     def on_send(e):
+        # Validacija
         if not email_field.value:
             error_text.value   = "Please enter your email address"
             error_text.visible = True
@@ -57,9 +59,25 @@ def forgot_password_view(page: ft.Page):
             page.update()
             return
 
-        error_text.visible   = False
-        success_text.value   = "Reset link sent to " + email_field.value.strip()
-        success_text.visible = True
+        # Generuojame tokeną ir siunčiame laišką
+        email = email_field.value.strip()
+        reset_token = generate_reset_token()
+        result = send_reset_email(email, reset_token)
+
+        error_text.visible = False
+        success_text.visible = False
+
+        if result["success"]:
+            success_text.value = "Reset link sent to " + email
+            success_text.visible = True
+            email_field.value = ""
+        elif result["message"] == "rate_limited":
+            error_text.value = f"Try again in {result.get('remaining', 60)} seconds"
+            error_text.visible = True
+        else:
+            error_text.value = "Failed to send reset email. Please try again."
+            error_text.visible = True
+
         page.update()
 
     content = ft.Container(
