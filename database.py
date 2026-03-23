@@ -2,15 +2,44 @@ import sqlite3
 import os
 import sys
 import bcrypt
+import shutil
 
-if getattr(sys, 'frozen', False):
-    # .exe - eik vienu lygiu aukštyn iš dist/ į projekto aplanką
-    BASE_DIR = os.path.dirname(os.path.dirname(sys.executable))
-else:
-    # python main.py
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+def _get_app_data_dir() -> str:
+    """Grąžina pastovų OwlTrack duomenų katalogą pagal OS."""
+    if sys.platform == "darwin":
+        # ~/Library/Application Support/OwlTrack
+        return os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
 
-DB_PATH = os.path.join(BASE_DIR, "owltrack.db")
+    if os.name == "nt":
+        # %APPDATA%\OwlTrack
+        appdata = os.getenv("APPDATA")
+        if appdata:
+            return os.path.join(appdata, "OwlTrack")
+
+    # Linux ir fallback
+    return os.path.join(os.path.expanduser("~"), ".owltrack")
+
+
+def _get_legacy_db_path() -> str:
+    """Ankstesnė DB vieta (naudota iki pastovaus app-data kelio)."""
+    if getattr(sys, 'frozen', False):
+        legacy_base_dir = os.path.dirname(os.path.dirname(sys.executable))
+    else:
+        legacy_base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(legacy_base_dir, "owltrack.db")
+
+
+APP_DATA_DIR = _get_app_data_dir()
+os.makedirs(APP_DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(APP_DATA_DIR, "owltrack.db")
+
+# Vienkartinė migracija: jei naujas DB neegzistuoja, nukopijuoti seną.
+LEGACY_DB_PATH = _get_legacy_db_path()
+if not os.path.exists(DB_PATH) and os.path.exists(LEGACY_DB_PATH):
+    try:
+        shutil.copy2(LEGACY_DB_PATH, DB_PATH)
+    except Exception:
+        pass
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
