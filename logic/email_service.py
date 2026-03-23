@@ -2,10 +2,12 @@ import smtplib
 import time
 import logging
 import secrets
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 import os
+from database import save_reset_token
 
 load_dotenv()
 
@@ -38,6 +40,12 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
             return {"success": False, "message": "rate_limited", "remaining": remaining}
     
     _last_request[to_email] = now
+    
+    # Saugoti tokeną į duomenų bazę su 10 minučių galiojimo laiku
+    expires_at = (datetime.now() + timedelta(minutes=10)).isoformat()
+    if not save_reset_token(to_email, reset_token, expires_at):
+        logger.error(f"Nepavyko saugoti reset tokeno: {to_email}")
+        return {"success": False, "message": "database_error"}
     
     reset_link = f"https://owltrack.app/reset-password?token={reset_token}"
 

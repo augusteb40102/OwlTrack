@@ -33,6 +33,18 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            email       TEXT NOT NULL,
+            token       TEXT NOT NULL UNIQUE,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at  TIMESTAMP NOT NULL,
+            used        BOOLEAN DEFAULT 0,
+            FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
+        )
+    """)
+
     for column, definition in [
         ("avatar_src", "TEXT DEFAULT NULL"),
         ("theme",      "TEXT DEFAULT 'purple'"),
@@ -133,3 +145,32 @@ def email_exists(email: str) -> bool:
     result = cursor.fetchone() is not None
     conn.close()
     return result
+
+def delete_old_tokens(email: str) -> None:
+    """Panaikina visus senus reset tokenus tam tikram emailui"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM password_reset_tokens WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+
+def save_reset_token(email: str, token: str, expires_at: str) -> bool:
+    """Išsaugo reset tokeną duomenų bazėje. Panaikina senus tokenus tos pašto adreso."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Panaikinti senus tokus
+        delete_old_tokens(email)
+        
+        # Saugoti naujasis token
+        cursor.execute(
+            "INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, ?)",
+            (email, token, expires_at)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Klaida saugant reset tokeną: {e}")
+        return False
