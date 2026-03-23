@@ -133,6 +133,29 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
         _refresh_compact()
         page.update()
 
+    day_popup = ft.AlertDialog(
+        modal=True,
+        bgcolor=c("SURFACE"),
+        title=ft.Text("", size=16, weight="bold", color=c("TEXT_PRIMARY")),
+        content=ft.Container(
+            width=300,
+            height=100,
+            content=ft.Text("", size=13, color=c("TEXT_SECONDARY")),
+        ),
+        actions=[
+            ft.TextButton(
+                "Close",
+                on_click=lambda e: close_popup(),
+                style=ft.ButtonStyle(color=c("PRIMARY")),
+            ),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    def close_popup():
+        day_popup.open = False
+        page.update()
+
     def _on_compact_day_click(day):
         selected_day[0] = day
         _refresh_compact()
@@ -145,6 +168,8 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
         border_radius=RADIUS_LG,
         bgcolor=th.TEXT_ON_PRIMARY,
         border=ft.border.all(2, c("BORDER")),
+        on_click=lambda e: _open_detail(),  
+        ink=True,
         content=ft.Column(
             [
                 ft.Row(
@@ -213,6 +238,11 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
         selected_day[0] = day
         _refresh_detail()
         _refresh_compact()
+        day_popup.title.value = f"{MONTH_NAMES[cal_month[0]-1]} {day}, {cal_year[0]}"
+        day_popup.content.content.value = "No events for this day yet."
+        day_popup.open = True
+        if day_popup not in page.overlay:
+            page.overlay.append(day_popup)
         page.update()
 
     def _detail_nav(delta):
