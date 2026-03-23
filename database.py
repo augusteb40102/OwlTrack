@@ -124,3 +124,12 @@ def change_user_password(email: str, old_password: str, new_password: str) -> di
         return {"success": False, "error": "Unable to update password"}
     finally:
         conn.close()
+
+def email_exists(email: str) -> bool:
+    """Patikrina ar el. pašto adresas egzistuoja duomenų bazėje"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    result = cursor.fetchone() is not None
+    conn.close()
+    return result

@@ -2,6 +2,7 @@ import flet as ft
 import re
 from ui.themes.backgrounds import auth_background
 from logic.email_service import send_reset_email, generate_reset_token
+from database import email_exists
 
 # ── Fiksuotos purple spalvos – nesikeičia su tema ─────────────────────────────
 _PRIMARY         = "#2D1B69"
@@ -43,6 +44,19 @@ def forgot_password_view(page: ft.Page):
     success_text = ft.Text("", color=_PRIMARY, size=FONT_XS, visible=False)
     error_text   = ft.Text("", color=_ERROR,   size=FONT_XS, visible=False)
 
+    send_button = ft.ElevatedButton(
+        "Send Link",
+        width=320, height=48,
+        style=_PRIMARY_BTN_STYLE,
+    )
+
+    def on_email_change(e):
+        """Atnaujinti mygtuko būseną pagal email lauko turinį"""
+        send_button.disabled = not email_field.value.strip()
+        page.update()
+
+    email_field.on_change = on_email_change
+
     def on_send(e):
         # Validacija
         if not email_field.value:
@@ -59,8 +73,19 @@ def forgot_password_view(page: ft.Page):
             page.update()
             return
 
-        # Generuojame tokeną ir siunčiame laišką
         email = email_field.value.strip()
+
+        # SAUGUMAS: patikrinti ar email egzistuoja, bet rodyti tą pačią žinutę
+        if not email_exists(email):
+            # Neatskleisti ar email egzistuoja - rodyti generinę žinutę
+            error_text.visible = False
+            success_text.value = "If an account with this email address exists, password reset instructions have been sent."
+            success_text.visible = True
+            email_field.value = ""
+            page.update()
+            return
+
+        # Email egzistuoja – generuojame tokeną ir siunčiame laišką
         reset_token = generate_reset_token()
         result = send_reset_email(email, reset_token)
 
@@ -68,17 +93,26 @@ def forgot_password_view(page: ft.Page):
         success_text.visible = False
 
         if result["success"]:
-            success_text.value = "Reset link sent to " + email
+            success_text.value = "If an account with this email address exists, password reset instructions have been sent."
             success_text.visible = True
             email_field.value = ""
         elif result["message"] == "rate_limited":
-            error_text.value = f"Try again in {result.get('remaining', 60)} seconds"
-            error_text.visible = True
+            # Netgi rate_limited case'ui rodome tą pačią žinutę
+            success_text.value = "If an account with this email address exists, password reset instructions have been sent."
+            success_text.visible = True
+            email_field.value = ""
         else:
-            error_text.value = "Failed to send reset email. Please try again."
-            error_text.visible = True
+            # Email siuntimo klaida
+            success_text.value = "If an account with this email address exists, password reset instructions have been sent."
+            success_text.visible = True
+            email_field.value = ""
 
         page.update()
+
+    send_button.on_click = on_send
+    
+    # Nustatyti pradžioje mygtukas pasyvus
+    send_button.disabled = True
 
     content = ft.Container(
         content=ft.Column(
@@ -106,12 +140,7 @@ def forgot_password_view(page: ft.Page):
                 error_text,
                 success_text,
                 ft.Container(height=SPACE_SM),
-                ft.ElevatedButton(
-                    "Send Link",
-                    width=320, height=48,
-                    style=_PRIMARY_BTN_STYLE,
-                    on_click=on_send,
-                ),
+                send_button,
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
