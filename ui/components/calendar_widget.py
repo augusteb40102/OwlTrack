@@ -2,6 +2,7 @@ import flet as ft
 import calendar
 from datetime import date
 import ui.themes.themes as th
+from database import save_calendar_entry, get_calendar_entries
 
 DAYS_SHORT  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 MONTH_NAMES = ["January","February","March","April","May","June",
@@ -10,7 +11,7 @@ MONTH_NAMES = ["January","February","March","April","May","June",
 RADIUS_LG = 20
 
 
-def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
+def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str = ""):
     """
     Sukuria kompaktinį ir detalų kalendorių.
 
@@ -28,6 +29,12 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
 
     def _month_str():
         return MONTH_NAMES[cal_month[0] - 1].upper()
+    def _get_mood_for_day(day):
+        entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
+        entries = get_calendar_entries(user_email, entry_date)
+        if entries:
+            return entries[-1]["mood"]
+        return None
 
     # ── SHARED GRID BUILDER ───────────────────────────────────────────
     def _build_grid(cell_h, num_size, num_dim, spacing, on_click_fn):
@@ -75,9 +82,30 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
                         bgcolor=nb, border_radius=num_dim // 2,
                         alignment=ft.Alignment(0, 0),
                     )
+
+                    entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
+                    entries = get_calendar_entries(user_email, entry_date)
+                    mood_icon = entries[-1]["mood"] if entries and entries[-1]["mood"] else None
+
+                    tooltip_text = None
+                    if entries:
+                        last = entries[-1]
+                        parts = []
+                        if last["activity"]:
+                            parts.append(last["activity"])
+                        if last["mood"]:
+                            parts.append(last["mood"])
+                        tooltip_text = " | ".join(parts)
+
+                    cell_content = [num_box]
+                    if mood_icon:
+                        cell_content.append(
+                            ft.Text(mood_icon, size=14, text_align=ft.TextAlign.CENTER)
+                        )
+
                     cell = ft.Container(
                         content=ft.Column(
-                            [num_box],
+                            cell_content,
                             alignment=ft.MainAxisAlignment.START,
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
@@ -87,6 +115,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
                         bgcolor=ft.Colors.with_opacity(0.07, c("SECONDARY")),
                         alignment=ft.Alignment(0, -0.7),
                         on_click=lambda e, d=day: on_click_fn(d),
+                        tooltip=tooltip_text,
                         ink=True,
                     )
                     cells.append(cell)
@@ -133,20 +162,99 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
         _refresh_compact()
         page.update()
 
+    selected_mood = [None]
+    MOODS = ["😊", "😐", "😢", "😡", "😴"]
+    mood_btns = {}
+
+    def on_mood_select(mood):
+        selected_mood[0] = mood
+        for m, btn in mood_btns.items():
+            btn.bgcolor = c("SECONDARY") if m == mood else ft.Colors.TRANSPARENT
+            btn.border = ft.border.all(2, c("SECONDARY") if m == mood else c("BORDER"))
+        page.update()
+
+    activity_field = ft.TextField(
+        label="Enter activity",
+        width=300,
+        bgcolor=c("SURFACE"),
+        border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
+        text_style=ft.TextStyle(color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+    )
+
+    def build_mood_row():
+        mood_btns.clear()
+        items = []
+        for mood in MOODS:
+            btn = ft.Container(
+                content=ft.Text(mood, size=24, text_align=ft.TextAlign.CENTER),
+                width=44,
+                height=44,
+                border_radius=22,
+                bgcolor=ft.Colors.TRANSPARENT,
+                border=ft.border.all(2, c("BORDER")),
+                alignment=ft.Alignment(0, 0),
+                on_click=lambda e, m=mood: on_mood_select(m),
+                ink=True,
+            )
+            mood_btns[mood] = btn
+            items.append(btn)
+        return ft.Row(items, spacing=8, alignment=ft.MainAxisAlignment.CENTER)
+
+    def save_day_entry(e):
+        activity = activity_field.value
+        mood = selected_mood[0]
+        print(f"Saving: activity={activity}, mood={mood}, day={selected_day[0]}, email={user_email}")
+        if activity or mood:
+            entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{selected_day[0]:02d}"
+            save_calendar_entry(user_email, entry_date, activity or "", mood or "")
+        activity_field.value = ""
+        selected_mood[0] = None
+        for btn in mood_btns.values():
+            btn.bgcolor = ft.Colors.TRANSPARENT
+            btn.border = ft.border.all(2, c("BORDER"))
+        close_popup()
+
+    mood_row = build_mood_row()
+
     day_popup = ft.AlertDialog(
         modal=True,
         bgcolor=c("SURFACE"),
         title=ft.Text("", size=16, weight="bold", color=c("TEXT_PRIMARY")),
         content=ft.Container(
             width=300,
-            height=100,
-            content=ft.Text("", size=13, color=c("TEXT_SECONDARY")),
+            content=ft.Column(
+                [
+                    ft.Text("Activity", size=12, color=c("TEXT_SECONDARY")),
+                    ft.Container(height=4),
+                    activity_field,
+                    ft.Container(height=16),
+                    ft.Text("Mood", size=12, color=c("TEXT_SECONDARY")),
+                    ft.Container(height=8),
+                    mood_row,
+                ],
+                spacing=0,
+                tight=True,
+            ),
         ),
         actions=[
             ft.TextButton(
-                "Close",
+                "Cancel",
                 on_click=lambda e: close_popup(),
-                style=ft.ButtonStyle(color=c("PRIMARY")),
+                style=ft.ButtonStyle(color=c("TEXT_SECONDARY")),
+            ),
+            ft.Container(
+                content=ft.Text("Save", size=13, color=c("TEXT_ON_PRIMARY"), weight="w600"),
+                on_click=save_day_entry,
+                ink=True,
+                border_radius=8,
+                padding=ft.padding.symmetric(horizontal=20, vertical=8),
+                gradient=ft.LinearGradient(
+                    begin=ft.Alignment(-1, 0),
+                    end=ft.Alignment(1, 0),
+                    colors=[c("SECONDARY"), c("PRIMARY")],
+                ),
             ),
         ],
         actions_alignment=ft.MainAxisAlignment.END,
@@ -239,7 +347,11 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container):
         _refresh_detail()
         _refresh_compact()
         day_popup.title.value = f"{MONTH_NAMES[cal_month[0]-1]} {day}, {cal_year[0]}"
-        day_popup.content.content.value = "No events for this day yet."
+        activity_field.value = ""
+        selected_mood[0] = None
+        for btn in mood_btns.values():
+            btn.bgcolor = ft.Colors.TRANSPARENT
+            btn.border = ft.border.all(2, c("BORDER"))
         day_popup.open = True
         if day_popup not in page.overlay:
             page.overlay.append(day_popup)

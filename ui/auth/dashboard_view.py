@@ -71,7 +71,7 @@ def dashboard_view(page: ft.Page):
 
     # ── CALENDAR ─────────────────────────────────────────────────────
     compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
-        build_calendar(page, c, grad, main_panel)
+        build_calendar(page, c, grad, main_panel, user_email)
 
     # ── HOME PANEL ────────────────────────────────────────────────────
     widget_placeholder_1 = ft.Container(
@@ -611,14 +611,16 @@ def dashboard_view(page: ft.Page):
         padding=ft.padding.symmetric(horizontal=12, vertical=6),
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, c("TEXT_ON_PRIMARY"))),
     )
-
+    def _go_dashboard():
+        main_panel.content = home_panel
+        main_panel.update()
     dashboard_inline_btn = ft.Container(
         content=ft.Row(
             [ft.Icon(ft.Icons.DASHBOARD, color=c("TEXT_ON_PRIMARY"), size=14),
              ft.Text("Dashboard", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500")],
             spacing=6, alignment=ft.MainAxisAlignment.CENTER,
         ),
-        on_click=lambda e: page.go("/dashboard"),
+        on_click=lambda e: _go_dashboard(),
         ink=True, border_radius=8,
         padding=ft.padding.symmetric(horizontal=12, vertical=6),
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, c("TEXT_ON_PRIMARY"))),

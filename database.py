@@ -29,8 +29,7 @@ def _get_legacy_db_path() -> str:
     return os.path.join(legacy_base_dir, "owltrack.db")
 
 
-APP_DATA_DIR = _get_app_data_dir()
-os.makedirs(APP_DATA_DIR, exist_ok=True)
+APP_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DATA_DIR, "owltrack.db")
 
 # Vienkartinė migracija: jei naujas DB neegzistuoja, nukopijuoti seną.
@@ -71,6 +70,16 @@ def create_tables():
             expires_at  TIMESTAMP NOT NULL,
             used        BOOLEAN DEFAULT 0,
             FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS calendar_entries (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email  TEXT NOT NULL,
+            entry_date  TEXT NOT NULL,
+            activity    TEXT,
+            mood        TEXT,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -117,6 +126,7 @@ def save_theme(email: str, theme: str) -> None:
     conn.commit()
     conn.close()
 
+
 def get_theme(email: str) -> str:
     conn = get_connection()
     cursor = conn.cursor()
@@ -145,6 +155,28 @@ def login_user(email: str, password: str) -> dict:
             "theme": user["theme"] if user["theme"] else "purple",
         }
     }
+def save_calendar_entry(user_email: str, entry_date: str, activity: str, mood: str) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO calendar_entries (user_email, entry_date, activity, mood)
+        VALUES (?, ?, ?, ?)
+    """, (user_email, entry_date, activity, mood))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+def get_calendar_entries(user_email: str, entry_date: str) -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT activity, mood FROM calendar_entries
+        WHERE user_email = ? AND entry_date = ?
+    """, (user_email, entry_date))
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"activity": r["activity"], "mood": r["mood"]} for r in rows]
+    
 
 def change_user_password(email: str, old_password: str, new_password: str) -> dict:
     conn = get_connection()
