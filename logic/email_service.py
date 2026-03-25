@@ -2,21 +2,49 @@ import smtplib
 import time
 import logging
 import secrets
+import sys
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 from dotenv import load_dotenv
 import os
 from database import save_reset_token
 
-load_dotenv()
+def _load_environment() -> None:
+    """Užkrauna .env iš dažniausių vietų (dev ir packaged paleidimai)."""
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+
+    if getattr(sys, "frozen", False):
+        executable_dir = Path(sys.executable).resolve().parent
+        candidates.extend([
+            executable_dir / ".env",
+            executable_dir.parent / ".env",
+        ])
+
+    unique_candidates = list(dict.fromkeys(candidates))
+    for dotenv_path in unique_candidates:
+        if dotenv_path.exists():
+            load_dotenv(dotenv_path=dotenv_path, override=False)
+
+
+def _get_smtp_credentials() -> tuple[str | None, str | None]:
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_password = os.getenv("GMAIL_PASSWORD")
+    if not gmail_user or not gmail_password:
+        logger.error("Nerasti SMTP kredencialai: GMAIL_USER/GMAIL_PASSWORD")
+        return None, None
+    return gmail_user, gmail_password
+
+
+_load_environment()
 
 # Logging konfiguracija
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 # Saugome paskutinio siuntimo laiką
 _last_request: dict = {}
@@ -30,6 +58,10 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
     Siunčia slaptažodžio atstatymo laišką
     Returns: {"success": bool, "message": str}
     """
+    gmail_user, gmail_password = _get_smtp_credentials()
+    if not gmail_user or not gmail_password:
+        return {"success": False, "message": "email_not_configured"}
+
     # Tikriname ar praėjo 1 minutė
     now = time.time()
     if to_email in _last_request:
@@ -51,7 +83,7 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = "OwlTrack – Password Reset"
-    msg["From"] = GMAIL_USER
+    msg["From"] = gmail_user
     msg["To"] = to_email
 
     html = f"""
@@ -81,8 +113,8 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL_USER, GMAIL_PASSWORD)
-            server.sendmail(GMAIL_USER, to_email, msg.as_string())
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, to_email, msg.as_string())
         logger.info(f"Reset email sėkmingai išsiųstas: {to_email}")
         return {"success": True, "message": "Email sent"}
     except Exception as e:
