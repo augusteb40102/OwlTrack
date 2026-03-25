@@ -1,7 +1,7 @@
 import flet as ft
 import re
 from ui.themes.backgrounds import auth_background
-from database import login_user
+from database import login_user, verify_reset_token, mark_token_used, set_password_from_token
 
 # ── Fiksuotos purple spalvos – nesikeičia su tema ─────────────────────────────
 _PRIMARY         = "#2D1B69"
@@ -58,31 +58,56 @@ def login_view(page: ft.Page):
     error_text = ft.Text("", color=_ERROR, size=FONT_XS, visible=False)
 
     def on_login(e):
+        error_text.visible = False
+
         if not email_field.value or not password_field.value:
-            error_text.value = "Please fill in all fields"
+            error_text.value   = "Please fill in all fields"
             error_text.visible = True
             page.update()
             return
 
         if not is_valid_email(email_field.value):
-            error_text.value = "Enter a valid email address"
+            error_text.value   = "Enter a valid email address"
             error_text.visible = True
             page.update()
             return
 
-        result = login_user(email_field.value.strip(), password_field.value)
-        if not result["success"]:
-            error_text.value = result["error"]
-            error_text.visible = True
-            page.update()
+        email    = email_field.value.strip()
+        password = password_field.value.strip()
+
+        # 1. Bandyti prisijungti su slaptažodžiu
+        result = login_user(email, password)
+        if result["success"]:
+            _go_dashboard(result["user"])
             return
 
+        # 2. Jei nepavyko – tikrinti ar tai laikinas kodas
+        code = password.upper()
+        token_result = verify_reset_token(code)
+
+        if token_result["valid"] and token_result["email"].lower() == email.lower():
+            # Kodas teisingas – išsaugoti jį kaip naują slaptažodį DB
+            set_password_from_token(email, code)
+            mark_token_used(code)
+
+            from database import get_user_by_email
+            user = get_user_by_email(email)
+            if user:
+                _go_dashboard(user)
+                return
+
+        # 3. Nei slaptažodis nei kodas netiko
+        error_text.value   = result["error"]
+        error_text.visible = True
+        page.update()
+
+    def _go_dashboard(user: dict):
         if not hasattr(page, "data") or page.data is None:
             page.data = {}
-        page.data["register_name"]  = result["user"]["name"]
-        page.data["register_email"] = result["user"]["email"]
-        page.data["avatar_src"]     = result["user"]["avatar_src"]
-        page.data["theme"]          = result["user"].get("theme", "purple")
+        page.data["register_name"]  = user["name"]
+        page.data["register_email"] = user["email"]
+        page.data["avatar_src"]     = user["avatar_src"]
+        page.data["theme"]          = user.get("theme", "purple")
         page.data["remember_me"]    = bool(remember_me_checkbox.value)
         page.go("/dashboard")
 
@@ -90,13 +115,7 @@ def login_view(page: ft.Page):
         content=ft.Column(
             [
                 ft.Row(
-                    [
-                        ft.IconButton(
-                            icon=ft.Icons.ARROW_BACK,
-                            icon_color=_TEXT_PRIMARY,
-                            on_click=go_back,
-                        )
-                    ],
+                    [ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=_TEXT_PRIMARY, on_click=go_back)],
                     alignment=ft.MainAxisAlignment.START,
                 ),
                 ft.Container(height=SPACE_LG),

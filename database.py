@@ -3,25 +3,20 @@ import os
 import sys
 import bcrypt
 import shutil
+from datetime import datetime
 
 def _get_app_data_dir() -> str:
     """Grąžina pastovų OwlTrack duomenų katalogą pagal OS."""
     if sys.platform == "darwin":
-        # ~/Library/Application Support/OwlTrack
         return os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
-
     if os.name == "nt":
-        # %APPDATA%\OwlTrack
         appdata = os.getenv("APPDATA")
         if appdata:
             return os.path.join(appdata, "OwlTrack")
-
-    # Linux ir fallback
     return os.path.join(os.path.expanduser("~"), ".owltrack")
 
 
 def _get_legacy_db_path() -> str:
-    """Ankstesnė DB vieta (naudota iki pastovaus app-data kelio)."""
     if getattr(sys, 'frozen', False):
         legacy_base_dir = os.path.dirname(os.path.dirname(sys.executable))
     else:
@@ -32,7 +27,6 @@ def _get_legacy_db_path() -> str:
 APP_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DATA_DIR, "owltrack.db")
 
-# Vienkartinė migracija: jei naujas DB neegzistuoja, nukopijuoti seną.
 LEGACY_DB_PATH = _get_legacy_db_path()
 if not os.path.exists(DB_PATH) and os.path.exists(LEGACY_DB_PATH):
     try:
@@ -72,6 +66,7 @@ def create_tables():
             FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
         )
     """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS calendar_entries (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +121,6 @@ def save_theme(email: str, theme: str) -> None:
     conn.commit()
     conn.close()
 
-
 def get_theme(email: str) -> str:
     conn = get_connection()
     cursor = conn.cursor()
@@ -155,6 +149,7 @@ def login_user(email: str, password: str) -> dict:
             "theme": user["theme"] if user["theme"] else "purple",
         }
     }
+
 def save_calendar_entry(user_email: str, entry_date: str, activity: str, mood: str) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
@@ -176,7 +171,6 @@ def get_calendar_entries(user_email: str, entry_date: str) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [{"activity": r["activity"], "mood": r["mood"]} for r in rows]
-    
 
 def change_user_password(email: str, old_password: str, new_password: str) -> dict:
     conn = get_connection()
@@ -199,7 +193,6 @@ def change_user_password(email: str, old_password: str, new_password: str) -> di
         conn.close()
 
 def email_exists(email: str) -> bool:
-    """Patikrina ar el. pašto adresas egzistuoja duomenų bazėje"""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
@@ -208,7 +201,6 @@ def email_exists(email: str) -> bool:
     return result
 
 def delete_old_tokens(email: str) -> None:
-    """Panaikina visus senus reset tokenus tam tikram emailui"""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM password_reset_tokens WHERE email = ?", (email,))
@@ -216,15 +208,10 @@ def delete_old_tokens(email: str) -> None:
     conn.close()
 
 def save_reset_token(email: str, token: str, expires_at: str) -> bool:
-    """Išsaugo reset tokeną duomenų bazėje. Panaikina senus tokenus tos pašto adreso."""
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        
-        # Panaikinti senus tokus
         delete_old_tokens(email)
-        
-        # Saugoti naujasis token
         cursor.execute(
             "INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, ?)",
             (email, token, expires_at)
@@ -234,4 +221,95 @@ def save_reset_token(email: str, token: str, expires_at: str) -> bool:
         return True
     except Exception as e:
         print(f"Klaida saugant reset tokeną: {e}")
+        return False
+
+def verify_reset_token(token: str) -> dict:
+    """
+    Patikrina ar reset tokenas galioja.
+    Returns:
+        {"valid": True,  "email": str}   – tokenas geras
+        {"valid": False, "reason": str}  – tokenas blogas
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT email, expires_at, used FROM password_reset_tokens WHERE token = ?",
+        (token,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return {"valid": False, "reason": "invalid"}
+
+    if row["used"]:
+        return {"valid": False, "reason": "already_used"}
+
+    expires_at = datetime.fromisoformat(row["expires_at"])
+    if datetime.now() > expires_at:
+        return {"valid": False, "reason": "expired"}
+
+    return {"valid": True, "email": row["email"]}
+
+def mark_token_used(token: str) -> None:
+    """Pažymi tokeną kaip panaudotą po sėkmingo slaptažodžio keitimo."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE password_reset_tokens SET used = 1 WHERE token = ?",
+        (token,)
+    )
+    conn.commit()
+    conn.close()
+
+def get_user_by_email(email: str) -> dict | None:
+    """Grąžina vartotojo duomenis pagal email."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    conn.close()
+    if not user:
+        return None
+    return {
+        "id":         user["id"],
+        "name":       user["name"],
+        "email":      user["email"],
+        "avatar_src": user["avatar_src"],
+        "theme":      user["theme"] if user["theme"] else "purple",
+    }
+
+def get_user_by_email(email: str) -> dict | None:
+    """Grąžina vartotojo duomenis pagal email."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    conn.close()
+    if not user:
+        return None
+    return {
+        "id":         user["id"],
+        "name":       user["name"],
+        "email":      user["email"],
+        "avatar_src": user["avatar_src"],
+        "theme":      user["theme"] if user["theme"] else "purple",
+    }
+
+def set_password_from_token(email: str, plain_password: str) -> bool:
+    """
+    Išsaugo laikiną kodą kaip naują hash'intą slaptažodį.
+    Vartotojas gali prisijungti su šiuo kodu kol nepakeis slaptažodžio per Settings.
+    """
+    import bcrypt
+    try:
+        hashed = bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Klaida išsaugant laikiną slaptažodį: {e}")
         return False

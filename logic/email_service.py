@@ -2,67 +2,47 @@ import smtplib
 import time
 import logging
 import secrets
-import sys
+import string
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from pathlib import Path
 from dotenv import load_dotenv
 import os
+import sys
 from database import save_reset_token
 
-def _load_environment() -> None:
-    """Užkrauna .env iš dažniausių vietų (dev ir packaged paleidimai)."""
-    candidates = [
-        Path.cwd() / ".env",
-        Path(__file__).resolve().parent.parent / ".env",
-    ]
+# Rasti .env failą nepriklausomai nuo to kur paleidžiama
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    if os.path.basename(BASE_DIR) == "logic":
+        BASE_DIR = os.path.dirname(BASE_DIR)
 
-    if getattr(sys, "frozen", False):
-        executable_dir = Path(sys.executable).resolve().parent
-        candidates.extend([
-            executable_dir / ".env",
-            executable_dir.parent / ".env",
-        ])
+dotenv_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path=dotenv_path)
 
-    unique_candidates = list(dict.fromkeys(candidates))
-    for dotenv_path in unique_candidates:
-        if dotenv_path.exists():
-            load_dotenv(dotenv_path=dotenv_path, override=False)
-
-
-def _get_smtp_credentials() -> tuple[str | None, str | None]:
-    gmail_user = os.getenv("GMAIL_USER")
-    gmail_password = os.getenv("GMAIL_PASSWORD")
-    if not gmail_user or not gmail_password:
-        logger.error("Nerasti SMTP kredencialai: GMAIL_USER/GMAIL_PASSWORD")
-        return None, None
-    return gmail_user, gmail_password
-
-
-_load_environment()
-
-# Logging konfiguracija
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Saugome paskutinio siuntimo laiką
+GMAIL_USER     = os.getenv("GMAIL_USER")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+
+if not GMAIL_USER or not GMAIL_PASSWORD:
+    logger.error(f"Nerasti SMTP kredencialai: GMAIL_USER/GMAIL_PASSWORD (ieškota: {dotenv_path})")
+
 _last_request: dict = {}
 
 def generate_reset_token() -> str:
-    """Generuoja 32 simbolių hex reset tokeną"""
-    return secrets.token_hex(16)
+    """Generuoja 10 simbolių vienkartinį kodą (raidės + skaičiai + paprasti ženklai)"""
+    alphabet = string.ascii_uppercase + string.digits + "!@#$%"
+    return ''.join(secrets.choice(alphabet) for _ in range(10))
 
 def send_reset_email(to_email: str, reset_token: str) -> dict:
-    """
-    Siunčia slaptažodžio atstatymo laišką
-    Returns: {"success": bool, "message": str}
-    """
-    gmail_user, gmail_password = _get_smtp_credentials()
-    if not gmail_user or not gmail_password:
-        return {"success": False, "message": "email_not_configured"}
+    if not GMAIL_USER or not GMAIL_PASSWORD:
+        logger.error("GMAIL_USER arba GMAIL_PASSWORD nenurodyti .env faile")
+        return {"success": False, "message": "email_error"}
 
-    # Tikriname ar praėjo 1 minutė
     now = time.time()
     if to_email in _last_request:
         elapsed = now - _last_request[to_email]
@@ -70,21 +50,18 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
             remaining = int(60 - elapsed)
             logger.warning(f"Rate limit: {to_email} – liko {remaining} sek")
             return {"success": False, "message": "rate_limited", "remaining": remaining}
-    
+
     _last_request[to_email] = now
-    
-    # Saugoti tokeną į duomenų bazę su 10 minučių galiojimo laiku
+
     expires_at = (datetime.now() + timedelta(minutes=10)).isoformat()
     if not save_reset_token(to_email, reset_token, expires_at):
         logger.error(f"Nepavyko saugoti reset tokeno: {to_email}")
         return {"success": False, "message": "database_error"}
-    
-    reset_link = f"https://owltrack.app/reset-password?token={reset_token}"
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "OwlTrack – Password Reset"
-    msg["From"] = gmail_user
-    msg["To"] = to_email
+    msg["Subject"] = "OwlTrack – Your Temporary Login Code"
+    msg["From"]    = GMAIL_USER
+    msg["To"]      = to_email
 
     html = f"""
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
@@ -92,17 +69,18 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
             <p style="color: #ffffff; font-size: 22px; font-weight: bold; margin: 0;">🦉 OwlTrack</p>
         </div>
         <div style="padding: 2rem; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;">
-            <p style="font-size: 18px; font-weight: bold;">Password reset request</p>
-            <p style="color: #64748b;">We received a request to reset your OwlTrack password. Click the button below to set a new password.</p>
+            <p style="font-size: 18px; font-weight: bold; color: #1a1040;">Your temporary code</p>
+            <p style="color: #64748b;">Use the code below to log in to your OwlTrack account.</p>
             <div style="text-align: center; margin: 2rem 0;">
-                <a href="{reset_link}" style="background: #2D1B69; color: #ffffff; padding: 12px 32px; border-radius: 999px; text-decoration: none; font-weight: bold;">
-                    Reset my password
-                </a>
+                <div style="display: inline-block; background: #F3EEFF; border: 2px solid #2D1B69; border-radius: 12px; padding: 16px 40px;">
+                    <p style="font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #2D1B69; margin: 0;">{reset_token}</p>
+                </div>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 10px;">This code expires 10 minutes after delivery — use it before it's gone.</p>
             </div>
             <div style="background: #f8fafc; padding: 12px; border-radius: 8px;">
                 <p style="font-size: 13px; color: #64748b; margin: 0;">
-                    This link expires in <strong>10 minutes</strong>. 
-                    If you did not request a password reset, please ignore this email.
+                    Once used to log in, it remains your password until you change it in <strong>Settings</strong>.
+                    If you did not request this, please ignore this email.
                 </p>
             </div>
         </div>
@@ -113,8 +91,8 @@ def send_reset_email(to_email: str, reset_token: str) -> dict:
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(gmail_user, gmail_password)
-            server.sendmail(gmail_user, to_email, msg.as_string())
+            server.login(GMAIL_USER, GMAIL_PASSWORD)
+            server.sendmail(GMAIL_USER, to_email, msg.as_string())
         logger.info(f"Reset email sėkmingai išsiųstas: {to_email}")
         return {"success": True, "message": "Email sent"}
     except Exception as e:
