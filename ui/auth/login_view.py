@@ -1,7 +1,10 @@
 import flet as ft
 import re
+import json
+import os
+import sys
 from ui.themes.backgrounds import auth_background
-from database import login_user, verify_reset_token, mark_token_used, set_password_from_token
+from database import login_user, verify_reset_token, mark_token_used, set_password_from_token, get_user_by_email
 
 # ── Fiksuotos purple spalvos – nesikeičia su tema ─────────────────────────────
 _PRIMARY         = "#2D1B69"
@@ -24,6 +27,44 @@ _PRIMARY_BTN_STYLE = ft.ButtonStyle(
     shape=ft.RoundedRectangleBorder(radius=10),
 )
 
+# ── Remember Me failo vieta ───────────────────────────────────────────────────
+def _get_remember_path() -> str:
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+        if os.path.basename(base) in ("ui", "auth"):
+            base = os.path.dirname(os.path.dirname(base))
+    return os.path.join(base, ".remember_me.json")
+
+def _save_remember(email: str, password: str) -> None:
+    try:
+        with open(_get_remember_path(), "w") as f:
+            json.dump({"email": email, "password": password}, f)
+    except Exception:
+        pass
+
+def _load_remember() -> dict | None:
+    """Grąžina email+password tik jei remember_me failas egzistuoja."""
+    try:
+        path = _get_remember_path()
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        pass
+    return None
+
+def _clear_remember() -> None:
+    try:
+        path = _get_remember_path()
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
+
+
 def login_view(page: ft.Page):
     def go_back(e):
         page.go("/")
@@ -31,8 +72,12 @@ def login_view(page: ft.Page):
     def is_valid_email(email: str) -> bool:
         return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
+    # ── Užkrauti išsaugotus duomenis ──────────────────────────────────
+    saved = _load_remember()
+
     email_field = ft.TextField(
         label="Email address", width=320,
+        value=saved.get("email", "") if saved else "",
         bgcolor=_SURFACE, border_color=_BORDER,
         focused_border_color=_PRIMARY,
         text_style=ft.TextStyle(color=_TEXT_PRIMARY),
@@ -40,6 +85,7 @@ def login_view(page: ft.Page):
     )
     password_field = ft.TextField(
         label="Password", width=320,
+        value=saved.get("password", "") if saved else "",
         password=True, can_reveal_password=True,
         bgcolor=_SURFACE, border_color=_BORDER,
         focused_border_color=_PRIMARY,
@@ -49,7 +95,7 @@ def login_view(page: ft.Page):
 
     remember_me_checkbox = ft.Checkbox(
         label="Remember Me",
-        value=False,
+        value=bool(saved),
         active_color=_PRIMARY,
         check_color=_TEXT_ON_PRIMARY,
         label_style=ft.TextStyle(color=_TEXT_SECONDARY, size=FONT_XS),
@@ -78,6 +124,7 @@ def login_view(page: ft.Page):
         # 1. Bandyti prisijungti su slaptažodžiu
         result = login_user(email, password)
         if result["success"]:
+            _handle_remember(email, password)
             _go_dashboard(result["user"])
             return
 
@@ -86,13 +133,11 @@ def login_view(page: ft.Page):
         token_result = verify_reset_token(code)
 
         if token_result["valid"] and token_result["email"].lower() == email.lower():
-            # Kodas teisingas – išsaugoti jį kaip naują slaptažodį DB
             set_password_from_token(email, code)
             mark_token_used(code)
-
-            from database import get_user_by_email
             user = get_user_by_email(email)
             if user:
+                _handle_remember(email, code)
                 _go_dashboard(user)
                 return
 
@@ -100,6 +145,15 @@ def login_view(page: ft.Page):
         error_text.value   = result["error"]
         error_text.visible = True
         page.update()
+
+    def _handle_remember(email: str, password: str):
+        if remember_me_checkbox.value:
+            _save_remember(email, password)
+        else:
+            _clear_remember()
+        # Visada išsaugoti sesiją (su arba be remember_me žymos)
+        if hasattr(page, "save_session"):
+            page.save_session(page.data, remember_me=bool(remember_me_checkbox.value))
 
     def _go_dashboard(user: dict):
         if not hasattr(page, "data") or page.data is None:
@@ -109,6 +163,7 @@ def login_view(page: ft.Page):
         page.data["avatar_src"]     = user["avatar_src"]
         page.data["theme"]          = user.get("theme", "purple")
         page.data["remember_me"]    = bool(remember_me_checkbox.value)
+
         page.go("/dashboard")
 
     content = ft.Container(
