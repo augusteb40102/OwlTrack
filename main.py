@@ -9,7 +9,6 @@ from database import create_tables, get_user_by_email
 import json
 import os
 import sys
-import uuid
 from datetime import datetime, timedelta
 
 def _get_session_path() -> str:
@@ -18,51 +17,6 @@ def _get_session_path() -> str:
     else:
         base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, ".session.json")
-
-def _get_remember_me_path() -> str:
-    """Get the path to the Remember Me file in OS-specific user data directory"""
-    if sys.platform == "darwin":
-        app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
-    elif os.name == "nt":
-        appdata = os.getenv("APPDATA")
-        app_data_dir = os.path.join(appdata, "OwlTrack") if appdata else os.path.join(os.path.expanduser("~"), "OwlTrack")
-    else:
-        app_data_dir = os.path.join(os.path.expanduser("~"), ".owltrack")
-    os.makedirs(app_data_dir, exist_ok=True)
-    return os.path.join(app_data_dir, ".remember_me.json")
-
-def _get_device_id_path() -> str:
-    """Get the path to the device ID file in OS-specific user data directory"""
-    if sys.platform == "darwin":
-        app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
-    elif os.name == "nt":
-        appdata = os.getenv("APPDATA")
-        app_data_dir = os.path.join(appdata, "OwlTrack") if appdata else os.path.join(os.path.expanduser("~"), "OwlTrack")
-    else:
-        app_data_dir = os.path.join(os.path.expanduser("~"), ".owltrack")
-    os.makedirs(app_data_dir, exist_ok=True)
-    return os.path.join(app_data_dir, ".device_id.json")
-
-def _generate_or_load_device_id() -> str:
-    """Generate a unique device ID or load existing one"""
-    device_id_path = _get_device_id_path()
-    try:
-        if os.path.exists(device_id_path):
-            with open(device_id_path) as f:
-                data = json.load(f)
-                return data.get("device_id", "")
-    except Exception:
-        pass
-    
-    # Generate new device ID
-    device_id = str(uuid.uuid4())
-    try:
-        with open(device_id_path, "w") as f:
-            json.dump({"device_id": device_id, "created_at": datetime.now().isoformat()}, f)
-    except Exception:
-        pass
-    
-    return device_id
 
 def _load_session() -> dict | None:
     try:
@@ -93,21 +47,10 @@ def save_session(user: dict, remember_me: bool = False) -> None:
         pass
 
 def clear_session() -> None:
-    """Clear only the session file (for security). Remember Me stays while on same device."""
     try:
         path = _get_session_path()
         if os.path.exists(path):
             os.remove(path)
-    except Exception:
-        pass
-
-def clear_session_and_remember_me() -> None:
-    """Clear both session and Remember Me data (for logout or explicit clearing)"""
-    clear_session()
-    try:
-        remember_path = _get_remember_me_path()
-        if os.path.exists(remember_path):
-            os.remove(remember_path)
     except Exception:
         pass
 
@@ -118,12 +61,8 @@ def main(page: ft.Page):
     page.spacing = 0
     page.window.icon = "assets/owl_clean.ico"
 
-    # ── Device ID for Remember Me binding ──────────────────────────────
-    device_id = _generate_or_load_device_id()
-    page.device_id = device_id
     page.save_session  = save_session
     page.clear_session = clear_session
-    page.clear_session_and_remember_me = clear_session_and_remember_me
 
     def route_change(route):
         page.views.clear()
@@ -143,10 +82,21 @@ def main(page: ft.Page):
 
     page.on_route_change = route_change
 
-    # ── SECURITY FIX: Do not auto-login on startup ──────────────────────────
-    # Always start at login screen. User must explicitly authenticate each time.
-    # Session/Remember Me is only used to pre-populate form fields, not for auto-login.
-    clear_session()
+    # ── Sesijos patikrinimas paleidžiant ──────────────────────────────
+    session = _load_session()
+    if session and session.get("register_email"):
+        user = get_user_by_email(session["register_email"])
+        if user:
+            if not hasattr(page, "data") or page.data is None:
+                page.data = {}
+            page.data["register_name"]  = user["name"]
+            page.data["register_email"] = user["email"]
+            page.data["avatar_src"]     = user["avatar_src"]
+            page.data["theme"]          = user.get("theme", "purple")
+            page.data["remember_me"]    = session.get("remember_me", False)
+            page.go("/dashboard")
+            return
+
     route_change(page.route)
     page.update()
 

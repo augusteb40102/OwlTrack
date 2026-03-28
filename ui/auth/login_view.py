@@ -31,7 +31,6 @@ _PRIMARY_BTN_STYLE = ft.ButtonStyle(
 
 # ── Remember Me failo vieta (OS-specific user data dir) ─────────────────────
 def _get_remember_path() -> str:
-    """Get the path to Remember Me file in OS-specific user data directory"""
     if sys.platform == "darwin":
         app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
     elif os.name == "nt":
@@ -43,7 +42,6 @@ def _get_remember_path() -> str:
     return os.path.join(app_data_dir, ".remember_me.json")
 
 def _save_remember(email: str, password: str, device_id: str) -> None:
-    """Save email+password+device_id for Remember Me"""
     try:
         with open(_get_remember_path(), "w") as f:
             json.dump({
@@ -56,14 +54,12 @@ def _save_remember(email: str, password: str, device_id: str) -> None:
         pass
 
 def _load_remember(device_id: str) -> dict | None:
-    """Load email+password only if device_id matches"""
     try:
         path = _get_remember_path()
         if not os.path.exists(path):
             return None
         with open(path) as f:
             data = json.load(f)
-        # Check if device ID matches
         if data.get("device_id") != device_id:
             return None
         return data
@@ -87,7 +83,6 @@ def login_view(page: ft.Page):
     def is_valid_email(email: str) -> bool:
         return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
-    # ── Užkrauti Remember Me duomenis (tik jei tas pats įrenginys) ────────────
     device_id = page.device_id if hasattr(page, "device_id") else ""
     saved = _load_remember(device_id)
 
@@ -140,8 +135,7 @@ def login_view(page: ft.Page):
         # 1. Bandyti prisijungti su slaptažodžiu
         result = login_user(email, password)
         if result["success"]:
-            _handle_remember(email, password)
-            _go_dashboard(result["user"])
+            _go_dashboard(result["user"], email, password)
             return
 
         # 2. Jei nepavyko – tikrinti ar tai laikinas kodas
@@ -153,8 +147,7 @@ def login_view(page: ft.Page):
             mark_token_used(code)
             user = get_user_by_email(email)
             if user:
-                _handle_remember(email, code)
-                _go_dashboard(user)
+                _go_dashboard(user, email, code)
                 return
 
         # 3. Nei slaptažodis nei kodas netiko
@@ -162,16 +155,8 @@ def login_view(page: ft.Page):
         error_text.visible = True
         page.update()
 
-    def _handle_remember(email: str, password: str):
-        if remember_me_checkbox.value:
-            _save_remember(email, password, device_id)
-        else:
-            _clear_remember()
-        # Visada išsaugoti sesiją (su arba be remember_me žymos)
-        if hasattr(page, "save_session"):
-            page.save_session(page.data, remember_me=bool(remember_me_checkbox.value))
-
-    def _go_dashboard(user: dict):
+    def _go_dashboard(user: dict, email: str, password: str):
+        # 1. Užpildyti page.data
         if not hasattr(page, "data") or page.data is None:
             page.data = {}
         page.data["register_name"]  = user["name"]
@@ -180,6 +165,16 @@ def login_view(page: ft.Page):
         page.data["theme"]          = user.get("theme", "purple")
         page.data["remember_me"]    = bool(remember_me_checkbox.value)
 
+        # 2. Išsaugoti remember me ir sesiją
+        if remember_me_checkbox.value:
+            _save_remember(email, password, device_id)
+        else:
+            _clear_remember()
+
+        if hasattr(page, "save_session"):
+            page.save_session(page.data, remember_me=bool(remember_me_checkbox.value))
+
+        # 3. Tik tada eiti į dashboard
         page.go("/dashboard")
 
     content = ft.Container(
