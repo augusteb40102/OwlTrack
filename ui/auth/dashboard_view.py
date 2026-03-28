@@ -147,7 +147,11 @@ def dashboard_view(page: ft.Page):
     )
     logout_confirm_btn = ft.Container(
         content=ft.Text("Log Out", size=13, color=c("TEXT_ON_PRIMARY"), weight="w600"),
-        on_click=lambda e: (page.clear_session() if hasattr(page, "clear_session") else None, page.go("/login"))[1],
+        on_click=lambda e: (
+            page.clear_session() if hasattr(page, "clear_session") else None,
+            setattr(page, "data", {}),
+            page.go("/login")
+        )[2],
         ink=True, border_radius=8,
         padding=ft.padding.symmetric(horizontal=20, vertical=10),
         bgcolor=c("PRIMARY"),
@@ -618,7 +622,10 @@ def dashboard_view(page: ft.Page):
              ft.Text("Dashboard", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500")],
             spacing=6, alignment=ft.MainAxisAlignment.CENTER,
         ),
-        on_click=lambda e: page.go("/dashboard"),
+        on_click=lambda e: (
+            setattr(main_panel, 'content', home_panel),
+            main_panel.update()
+        ),
         ink=True, border_radius=8,
         padding=ft.padding.symmetric(horizontal=12, vertical=6),
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, c("TEXT_ON_PRIMARY"))),

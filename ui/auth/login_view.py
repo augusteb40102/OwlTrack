@@ -3,6 +3,8 @@ import re
 import json
 import os
 import sys
+import uuid
+from datetime import datetime
 from ui.themes.backgrounds import auth_background
 from database import login_user, verify_reset_token, mark_token_used, set_password_from_token, get_user_by_email
 
@@ -37,21 +39,31 @@ def _get_remember_path() -> str:
             base = os.path.dirname(os.path.dirname(base))
     return os.path.join(base, ".remember_me.json")
 
-def _save_remember(email: str, password: str) -> None:
+def _save_remember(email: str, password: str, device_id: str) -> None:
+    """Save email+password+device_id for Remember Me"""
     try:
         with open(_get_remember_path(), "w") as f:
-            json.dump({"email": email, "password": password}, f)
+            json.dump({
+                "email": email,
+                "password": password,
+                "device_id": device_id,
+                "saved_at": datetime.now().isoformat()
+            }, f)
     except Exception:
         pass
 
-def _load_remember() -> dict | None:
-    """Grąžina email+password tik jei remember_me failas egzistuoja."""
+def _load_remember(device_id: str) -> dict | None:
+    """Load email+password only if device_id matches"""
     try:
         path = _get_remember_path()
         if not os.path.exists(path):
             return None
         with open(path) as f:
-            return json.load(f)
+            data = json.load(f)
+        # Check if device ID matches
+        if data.get("device_id") != device_id:
+            return None
+        return data
     except Exception:
         pass
     return None
@@ -72,8 +84,9 @@ def login_view(page: ft.Page):
     def is_valid_email(email: str) -> bool:
         return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
-    # ── Užkrauti išsaugotus duomenis ──────────────────────────────────
-    saved = _load_remember()
+    # ── Užkrauti Remember Me duomenis (tik jei tas pats įrenginys) ────────────
+    device_id = page.device_id if hasattr(page, "device_id") else ""
+    saved = _load_remember(device_id)
 
     email_field = ft.TextField(
         label="Email address", width=320,
@@ -148,7 +161,7 @@ def login_view(page: ft.Page):
 
     def _handle_remember(email: str, password: str):
         if remember_me_checkbox.value:
-            _save_remember(email, password)
+            _save_remember(email, password, device_id)
         else:
             _clear_remember()
         # Visada išsaugoti sesiją (su arba be remember_me žymos)
