@@ -29,15 +29,18 @@ _PRIMARY_BTN_STYLE = ft.ButtonStyle(
     shape=ft.RoundedRectangleBorder(radius=10),
 )
 
-# ── Remember Me failo vieta ───────────────────────────────────────────────────
+# ── Remember Me failo vieta (OS-specific user data dir) ─────────────────────
 def _get_remember_path() -> str:
-    if getattr(sys, 'frozen', False):
-        base = os.path.dirname(sys.executable)
+    """Get the path to Remember Me file in OS-specific user data directory"""
+    if sys.platform == "darwin":
+        app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
+    elif os.name == "nt":
+        appdata = os.getenv("APPDATA")
+        app_data_dir = os.path.join(appdata, "OwlTrack") if appdata else os.path.join(os.path.expanduser("~"), "OwlTrack")
     else:
-        base = os.path.dirname(os.path.abspath(__file__))
-        if os.path.basename(base) in ("ui", "auth"):
-            base = os.path.dirname(os.path.dirname(base))
-    return os.path.join(base, ".remember_me.json")
+        app_data_dir = os.path.join(os.path.expanduser("~"), ".owltrack")
+    os.makedirs(app_data_dir, exist_ok=True)
+    return os.path.join(app_data_dir, ".remember_me.json")
 
 def _save_remember(email: str, password: str, device_id: str) -> None:
     """Save email+password+device_id for Remember Me"""

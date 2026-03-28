@@ -20,20 +20,28 @@ def _get_session_path() -> str:
     return os.path.join(base, ".session.json")
 
 def _get_remember_me_path() -> str:
-    """Get the path to the Remember Me file"""
-    if getattr(sys, 'frozen', False):
-        base = os.path.dirname(sys.executable)
+    """Get the path to the Remember Me file in OS-specific user data directory"""
+    if sys.platform == "darwin":
+        app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
+    elif os.name == "nt":
+        appdata = os.getenv("APPDATA")
+        app_data_dir = os.path.join(appdata, "OwlTrack") if appdata else os.path.join(os.path.expanduser("~"), "OwlTrack")
     else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, ".remember_me.json")
+        app_data_dir = os.path.join(os.path.expanduser("~"), ".owltrack")
+    os.makedirs(app_data_dir, exist_ok=True)
+    return os.path.join(app_data_dir, ".remember_me.json")
 
 def _get_device_id_path() -> str:
-    """Get the path to the device ID file"""
-    if getattr(sys, 'frozen', False):
-        base = os.path.dirname(sys.executable)
+    """Get the path to the device ID file in OS-specific user data directory"""
+    if sys.platform == "darwin":
+        app_data_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OwlTrack")
+    elif os.name == "nt":
+        appdata = os.getenv("APPDATA")
+        app_data_dir = os.path.join(appdata, "OwlTrack") if appdata else os.path.join(os.path.expanduser("~"), "OwlTrack")
     else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, ".device_id.json")
+        app_data_dir = os.path.join(os.path.expanduser("~"), ".owltrack")
+    os.makedirs(app_data_dir, exist_ok=True)
+    return os.path.join(app_data_dir, ".device_id.json")
 
 def _generate_or_load_device_id() -> str:
     """Generate a unique device ID or load existing one"""
