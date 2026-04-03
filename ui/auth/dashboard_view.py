@@ -2,6 +2,7 @@ import flet as ft
 import ui.themes.themes as th
 from ui.themes.themes import apply_theme, THEMES
 from ui.components.calendar_widget import build_calendar
+from ui.components.todo_widget import build_todo
 from database import save_avatar as db_save_avatar
 from database import change_user_password as db_change_user_password
 from database import save_theme as db_save_theme
@@ -73,13 +74,23 @@ def dashboard_view(page: ft.Page):
     compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
         build_calendar(page, c, grad, main_panel)
 
+    # ── TO-DO LIST ───────────────────────────────────────────────────
+    todo_detail_panel, get_todo_refs, refresh_todo_theme, set_todo_home_panel = \
+        build_todo(page, c, grad, main_panel, user_email)
+
     # ── HOME PANEL ────────────────────────────────────────────────────
+
     widget_placeholder_1 = ft.Container(
         expand=True,
         border_radius=RADIUS_LG,
         bgcolor=th.TEXT_ON_PRIMARY,
         border=ft.border.all(2, c("BORDER")),
         padding=ft.padding.all(16),
+        on_click=lambda e: (
+            setattr(main_panel, "content", todo_detail_panel),
+            main_panel.update()
+        ),
+        ink=True,
     )
 
     widget_placeholder_2 = ft.Container(
@@ -113,6 +124,7 @@ def dashboard_view(page: ft.Page):
 
     main_panel.content = home_panel
     set_home_panel(home_panel)
+    set_todo_home_panel(home_panel)
 
     # ── AVATAR WIDGET ─────────────────────────────────────────────────
     def build_avatar_content(src):
@@ -365,6 +377,10 @@ def dashboard_view(page: ft.Page):
         # Placeholders
         widget_placeholder_1.border = ft.border.all(2, c("BORDER"))
         widget_placeholder_2.border = ft.border.all(2, c("BORDER"))
+
+        # To-do panel — atnaujina visus refs
+        todo_refs = get_todo_refs()
+        refresh_todo_theme()
 
         # Kalendorius — atnaujina visus refs ir perkuria grid'us
         cal_refs = get_cal_refs()
