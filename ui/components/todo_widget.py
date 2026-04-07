@@ -23,10 +23,22 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         home_panel_ref[0] = home
 
     tasks = [
-        {"id": 1, "title": "Finish weekly report", "type": "type", "due_date": "2026-04-10", "completed": False},
-        {"id": 2, "title": "Exam preparation", "type": "type", "due_date": "2026-04-15", "completed": False},
-        {"id": 3, "title": "Team meeting", "type": "type", "due_date": "2026-04-05", "completed": False},
+        {"id": 1, "title": "Finish weekly report", "type": "Assignment", "due_date": "2026-04-10", "completed": False},
+        {"id": 2, "title": "Exam preparation", "type": "Exam", "due_date": "2026-04-15", "completed": False},
+        {"id": 3, "title": "Team meeting", "type": "Appointment", "due_date": "2026-04-05", "completed": False},
     ]
+
+    # Filter state - track which filter type is selected
+    filter_types = {
+        "All": {"color": c("BORDER"), "display_name": "All"},
+        "Completed": {"color": "#4CAF50", "display_name": "Completed"},
+        "Assignment": {"color": "#2196F3", "display_name": "Assignment"},
+        "Appointment": {"color": "#E91E63", "display_name": "Appointment"},
+        "Exam": {"color": "#9C27B0", "display_name": "Exam"},
+        "Other": {"color": "#BDBDBD", "display_name": "Other"},
+    }
+    
+    selected_filter = ["All"]  # Use list to allow modification in nested functions
 
     tasks_list_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
 
@@ -39,7 +51,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     )
     type_field = ft.TextField(
         label="Type",
-        value="type",
+        value="Assignment",
         bgcolor=c("SURFACE"),
         border_color=c("BORDER"),
         focused_border_color=c("PRIMARY"),
@@ -138,7 +150,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         if mode == "add":
             dialog_title.value = "Add new task"
             title_field.value = ""
-            type_field.value = "type"
+            type_field.value = "Assignment"
             due_date_field.value = datetime.now().strftime("%Y-%m-%d")
             confirm_label = "Add"
         else:
@@ -147,13 +159,13 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                 return
             dialog_title.value = "Edit task"
             title_field.value = task["title"]
-            type_field.value = task["type"] or "type"
+            type_field.value = task["type"] if task["type"] and task["type"] != "type" else "Assignment"
             due_date_field.value = task["due_date"]
             confirm_label = "Save"
 
         def on_confirm(e):
             title_value = (title_field.value or "").strip()
-            type_value = (type_field.value or "type").strip() or "type"
+            type_value = (type_field.value or "Assignment").strip() or "Assignment"
             due_value = (due_date_field.value or "").strip()
 
             if not title_value:
@@ -217,7 +229,23 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     def refresh_tasks_list():
         """Atnaujina užduočių sąrašą"""
         rows = []
+        
+        # Filter tasks based on selected filter
+        filtered_tasks = []
+        current_filter = selected_filter[0]
+        
         for task in tasks:
+            if current_filter == "All":
+                filtered_tasks.append(task)
+            elif current_filter == "Completed":
+                if task["completed"]:
+                    filtered_tasks.append(task)
+            else:
+                # For type-based filters (Assignment, Appointment, Exam, Other)
+                if not task["completed"] and task["type"] == current_filter:
+                    filtered_tasks.append(task)
+        
+        for task in filtered_tasks:
             days_text = parse_days_left(task["due_date"])
 
             # Circular checkbox (rutuliukas)
@@ -262,7 +290,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                                     ),
                                 ),
                                 ft.Text(
-                                    f"type • {days_text}",
+                                    f"{task['type']} • {days_text}",
                                     size=11,
                                     color=c("TEXT_SECONDARY"),
                                 ),
@@ -346,6 +374,74 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     def add_new_task(e=None):
         open_task_form("add")
 
+    def get_filter_count(filter_type: str):
+        """Grąžina task'ų skaičių tam filteriui"""
+        if filter_type == "All":
+            return len(tasks)
+        elif filter_type == "Completed":
+            return len([t for t in tasks if t["completed"]])
+        else:
+            return len([t for t in tasks if not t["completed"] and t["type"] == filter_type])
+
+    def select_filter(filter_type: str):
+        """Pasirenkamas filterį"""
+        selected_filter[0] = filter_type
+        refresh_filter_ui()
+        refresh_tasks_list()
+        page.update()
+
+    def build_filter_tab(filter_type: str):
+        """Sukuria filter tab'ą"""
+        is_selected = selected_filter[0] == filter_type
+        count = get_filter_count(filter_type)
+        color = filter_types[filter_type]["color"]
+        
+        # Darker shade for selected state
+        bg_color = color if is_selected else ft.Colors.TRANSPARENT
+        text_color = ft.Colors.WHITE if is_selected else color
+        border_color = color
+        
+        return ft.Container(
+            content=ft.Text(
+                f"{filter_type} ({count})",
+                size=12,
+                color=text_color,
+                weight="w600"
+            ),
+            bgcolor=bg_color,
+            border=ft.border.all(2, border_color),
+            border_radius=8,
+            padding=ft.padding.symmetric(horizontal=12, vertical=6),
+            on_click=lambda e: select_filter(filter_type),
+            ink=True,
+        )
+
+    def refresh_filter_ui():
+        """Atnaujina filtro UI"""
+        filter_tabs = []
+        for filter_type in filter_types.keys():
+            filter_tabs.append(build_filter_tab(filter_type))
+        
+        # Add new task button
+        add_btn = ft.Container(
+            content=ft.Icon(ft.Icons.ADD, size=18, color=c("TEXT_ON_PRIMARY")),
+            bgcolor=c("PRIMARY"),
+            border_radius=8,
+            padding=ft.padding.all(6),
+            on_click=add_new_task,
+            ink=True,
+            tooltip="Add new task",
+        )
+        
+        filter_tabs.append(add_btn)
+        
+        todo_filter_area.content = ft.Row(
+            filter_tabs,
+            spacing=8,
+            wrap=True,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
     # Left panel: Tasks list
     todo_tasks_panel = ft.Container(
         expand=True,
@@ -410,6 +506,9 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         padding=ft.padding.all(12),
     )
 
+    refresh_tasks_list()
+    refresh_filter_ui()
+
     # Back button
     todo_back_btn = ft.Container(
         content=ft.Row(
@@ -456,8 +555,6 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
             expand=True,
         ),
     )
-
-    refresh_tasks_list()
 
     def get_todo_refs():
         """Grąžina dict su visais theme-priklausomais ref'ais"""

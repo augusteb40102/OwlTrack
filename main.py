@@ -34,6 +34,7 @@ def _load_session() -> dict | None:
     except Exception:
         return None
 
+
 def save_session(user: dict, remember_me: bool = False) -> None:
     """Visada išsaugo sesiją. remember_me žyma tik lemia ar užpildyti login laukus."""
     try:
