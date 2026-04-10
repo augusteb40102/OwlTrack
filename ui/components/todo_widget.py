@@ -69,8 +69,29 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         "Exam": {"color": "#9C27B0", "display_name": "Exam"},
         "Other": {"color": "#BDBDBD", "display_name": "Other"},
     }
+    type_colors = {
+        "assignment": "#2196F3",
+        "appointment": "#E91E63",
+        "exam": "#9C27B0",
+        "other": "#BDBDBD",
+    }
     
     selected_filter = ["All"]  # Use list to allow modification in nested functions
+
+    def get_type_color(task_type: str):
+        key = (task_type or "").strip().lower()
+        return type_colors.get(key, c("BORDER"))
+
+    def build_type_option(task_type: str):
+        return ft.dropdown.Option(
+            key=task_type,
+            text=task_type,
+            leading_icon=ft.Icon(
+                ft.Icons.CIRCLE,
+                color=get_type_color(task_type),
+                size=10,
+            ),
+        )
 
     tasks_list_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
 
@@ -81,13 +102,34 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         border_color=c("BORDER"),
         focused_border_color=c("PRIMARY"),
     )
-    type_field = ft.TextField(
+    type_field = ft.Dropdown(
         label="Type",
         value="Assignment",
+        width=420,
+        options=[
+            build_type_option("Assignment"),
+            build_type_option("Appointment"),
+            build_type_option("Exam"),
+            build_type_option("Other"),
+        ],
         bgcolor=c("SURFACE"),
         border_color=c("BORDER"),
         focused_border_color=c("PRIMARY"),
     )
+
+    def refresh_type_field_icon():
+        type_field.leading_icon = ft.Icon(
+            ft.Icons.CIRCLE,
+            color=get_type_color(type_field.value),
+            size=10,
+        )
+
+    def on_type_select(e):
+        refresh_type_field_icon()
+        page.update()
+
+    type_field.on_select = on_type_select
+    refresh_type_field_icon()
     due_date_field = ft.TextField(
         label="Due date (YYYY-MM-DD)",
         expand=True,
@@ -380,6 +422,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
             dialog_title.value = "Add new task"
             title_field.value = ""
             type_field.value = "Assignment"
+            refresh_type_field_icon()
             due_date_field.value = datetime.now().strftime("%Y-%m-%d")
             confirm_label = "Add"
         else:
@@ -388,13 +431,14 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                 return
             dialog_title.value = "Edit task"
             title_field.value = task["title"]
-            type_field.value = task["type"] if task["type"] and task["type"] != "type" else "Assignment"
+            type_field.value = task["type"] if task["type"] in ["Assignment", "Appointment", "Exam", "Other"] else "Other"
+            refresh_type_field_icon()
             due_date_field.value = task["due_date"]
             confirm_label = "Save"
 
         def on_confirm(e):
             title_value = (title_field.value or "").strip()
-            type_value = (type_field.value or "Assignment").strip() or "Assignment"
+            type_value = (type_field.value or "Assignment")
             due_value = (due_date_field.value or "").strip()
 
             if not title_value:
@@ -432,6 +476,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                         break
 
             close_dialog(task_form_dialog)
+            refresh_filter_ui()
             refresh_tasks_list()
             refresh_statistics_ui()
             page.update()
@@ -520,10 +565,20 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                                         weight="w500",
                                     ),
                                 ),
-                                ft.Text(
-                                    f"{task['type']} • {days_text}",
-                                    size=11,
-                                    color=c("TEXT_SECONDARY"),
+                                ft.Row(
+                                    [
+                                        ft.Container(
+                                            width=8,
+                                            height=8,
+                                            border_radius=4,
+                                            bgcolor=get_type_color(task["type"]),
+                                        ),
+                                        ft.Text(task["type"], size=11, color=c("TEXT_SECONDARY")),
+                                        ft.Text("•", size=11, color=c("TEXT_SECONDARY")),
+                                        ft.Text(days_text, size=11, color=c("TEXT_SECONDARY")),
+                                    ],
+                                    spacing=5,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 ),
                             ],
                             spacing=4,
@@ -563,6 +618,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                 task["completed"] = bool(is_completed)
                 task["completed_at"] = datetime.now().strftime("%Y-%m-%d") if is_completed else None
                 break
+        refresh_filter_ui()
         refresh_tasks_list()
         refresh_statistics_ui()
         page.update()
@@ -601,6 +657,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         nonlocal tasks
         tasks = [task for task in tasks if task["id"] != task_id]
         close_dialog(delete_dialog)
+        refresh_filter_ui()
         refresh_tasks_list()
         refresh_statistics_ui()
         page.update()
