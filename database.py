@@ -3,7 +3,7 @@ import os
 import sys
 import bcrypt
 import shutil
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 def _get_app_data_dir() -> str:
     """Grąžina pastovų OwlTrack duomenų katalogą pagal OS."""
@@ -77,6 +77,25 @@ def create_tables():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email    TEXT NOT NULL,
+            title         TEXT NOT NULL,
+            type          TEXT NOT NULL DEFAULT 'Assignment',
+            due_date      TEXT NOT NULL,
+            completed     INTEGER NOT NULL DEFAULT 0,
+            completed_at  TEXT DEFAULT NULL,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_user_email ON tasks(user_email)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at)")
 
     for column, definition in [
         ("avatar_src", "TEXT DEFAULT NULL"),
@@ -313,3 +332,327 @@ def set_password_from_token(email: str, plain_password: str) -> bool:
     except Exception as e:
         print(f"Klaida išsaugant laikiną slaptažodį: {e}")
         return False
+
+
+def list_user_tasks(user_email: str) -> list[dict]:
+    """Grąžina vartotojo užduotis, surikiuotas pagal terminą ir id."""
+    if not user_email:
+        return []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, title, type, due_date, completed, completed_at
+        FROM tasks
+        WHERE user_email = ?
+        ORDER BY id DESC
+        """,
+        (user_email,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [
+        {
+            "id": row["id"],
+            "title": row["title"],
+            "type": row["type"],
+            "due_date": row["due_date"],
+            "completed": bool(row["completed"]),
+            "completed_at": row["completed_at"],
+        }
+        for row in rows
+    ]
+
+
+def create_task(user_email: str, title: str, task_type: str, due_date: str) -> dict:
+    """Sukuria naują vartotojo užduotį."""
+    if not user_email:
+        return {"success": False, "error": "missing_user_email"}
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO tasks (user_email, title, type, due_date, completed, completed_at)
+            VALUES (?, ?, ?, ?, 0, NULL)
+            """,
+            (user_email, title, task_type, due_date),
+        )
+        conn.commit()
+        return {"success": True, "task_id": cursor.lastrowid}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def update_task(task_id: int, user_email: str, title: str, task_type: str, due_date: str) -> dict:
+    """Atnaujina vartotojo užduoties bazinius laukus."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET title = ?,
+                type = ?,
+                due_date = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_email = ?
+            """,
+            (title, task_type, due_date, task_id, user_email),
+        )
+        conn.commit()
+        return {"success": cursor.rowcount > 0}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def delete_task(task_id: int, user_email: str) -> dict:
+    """Ištrina vartotojo užduotį."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM tasks WHERE id = ? AND user_email = ?",
+            (task_id, user_email),
+        )
+        conn.commit()
+        return {"success": cursor.rowcount > 0}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def set_task_completed(task_id: int, user_email: str, completed: bool, completed_at: str | None = None) -> dict:
+    """Pažymi užduotį atlikta / neatlikta, atnaujina completed_at."""
+    completed_at_value = None
+    if completed:
+        completed_at_value = completed_at or date.today().isoformat()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET completed = ?,
+                completed_at = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_email = ?
+            """,
+            (1 if completed else 0, completed_at_value, task_id, user_email),
+        )
+        conn.commit()
+        return {"success": cursor.rowcount > 0}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def _parse_iso_date(value: str | None):
+    if not value:
+        return None
+    value = str(value).strip()
+    if not value:
+        return None
+
+    # Primary format used in tasks: YYYY-MM-DD
+    try:
+        return datetime.strptime(value[:10], "%Y-%m-%d").date()
+    except Exception:
+        pass
+
+    # Fallback for full ISO strings
+    try:
+        return datetime.fromisoformat(value).date()
+    except Exception:
+        return None
+
+
+def _empty_monthly_task_stats(year: int, month: int, upcoming_window_days: int = 7) -> dict:
+    weekday_labels = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    return {
+        "month": f"{year:04d}-{month:02d}",
+        "totals": {
+            "all_tasks": 0,
+            "completed_tasks": 0,
+            "completion_percent": 0.0,
+        },
+        "deadlines": {
+            "overdue_tasks": 0,
+            "upcoming_tasks": 0,
+            "upcoming_window_days": upcoming_window_days,
+        },
+        "streak": {
+            "current_days": 0,
+        },
+        "weekday_productivity": [
+            {"day": day, "tasks": 0} for day in weekday_labels
+        ],
+        "most_productive_day": {
+            "day": None,
+            "tasks": 0,
+        },
+    }
+
+
+def get_monthly_task_statistics(user_email: str, year: int, month: int, upcoming_window_days: int = 7) -> dict:
+    """
+    Apskaičiuoja vartotojo mėnesinę užduočių statistiką ir grąžina GUI tinkamą formatą.
+
+    Grąžinimo formatas:
+    {
+        "month": "YYYY-MM",
+        "totals": {
+            "all_tasks": int,
+            "completed_tasks": int,
+            "completion_percent": float,
+        },
+        "deadlines": {
+            "overdue_tasks": int,
+            "upcoming_tasks": int,
+            "upcoming_window_days": int,
+        },
+        "streak": {"current_days": int},
+        "weekday_productivity": [
+            {"day": "Monday", "tasks": int}, ...
+        ],
+        "most_productive_day": {
+            "day": str | None,
+            "tasks": int,
+        },
+    }
+    """
+    try:
+        year = int(year)
+        month = int(month)
+    except Exception:
+        today = date.today()
+        return _empty_monthly_task_stats(today.year, today.month, upcoming_window_days)
+
+    if month < 1 or month > 12:
+        return _empty_monthly_task_stats(year, 1, upcoming_window_days)
+
+    stats = _empty_monthly_task_stats(year, month, upcoming_window_days)
+    if not user_email:
+        return stats
+
+    weekday_labels = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+
+    try:
+        selected_start = date(year, month, 1)
+        selected_end = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+    except Exception:
+        return stats
+
+    today = date.today()
+    upcoming_limit = today + timedelta(days=max(int(upcoming_window_days), 0))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT due_date, completed, completed_at
+            FROM tasks
+            WHERE user_email = ?
+            """,
+            (user_email,),
+        )
+        rows = cursor.fetchall()
+    except Exception:
+        conn.close()
+        return stats
+    finally:
+        conn.close()
+
+    month_total = 0
+    month_completed = 0
+    month_overdue = 0
+    month_upcoming = 0
+
+    weekday_counts = [0] * 7
+    completed_days = set()
+
+    for row in rows:
+        due = _parse_iso_date(row["due_date"])
+        completed_at = _parse_iso_date(row["completed_at"])
+        is_completed = bool(row["completed"])
+
+        if is_completed and completed_at:
+            completed_days.add(completed_at)
+
+        if due and selected_start <= due < selected_end:
+            month_total += 1
+
+            if is_completed:
+                month_completed += 1
+            else:
+                if due < today:
+                    month_overdue += 1
+                if today <= due <= upcoming_limit:
+                    month_upcoming += 1
+
+        if is_completed and completed_at and selected_start <= completed_at < selected_end:
+            weekday_counts[completed_at.weekday()] += 1
+
+    # Current streak: consecutive days up to today with at least 1 completed task.
+    streak = 0
+    cursor_day = today
+    while cursor_day in completed_days:
+        streak += 1
+        cursor_day -= timedelta(days=1)
+
+    completion_percent = 0.0
+    if month_total > 0:
+        completion_percent = round((month_completed / month_total) * 100, 2)
+
+    stats["totals"]["all_tasks"] = month_total
+    stats["totals"]["completed_tasks"] = month_completed
+    stats["totals"]["completion_percent"] = completion_percent
+    stats["deadlines"]["overdue_tasks"] = month_overdue
+    stats["deadlines"]["upcoming_tasks"] = month_upcoming
+    stats["streak"]["current_days"] = streak
+
+    stats["weekday_productivity"] = [
+        {"day": weekday_labels[i], "tasks": weekday_counts[i]}
+        for i in range(7)
+    ]
+
+    max_tasks = max(weekday_counts) if weekday_counts else 0
+    if max_tasks > 0:
+        best_day_idx = weekday_counts.index(max_tasks)
+        stats["most_productive_day"] = {
+            "day": weekday_labels[best_day_idx],
+            "tasks": max_tasks,
+        }
+
+    return stats

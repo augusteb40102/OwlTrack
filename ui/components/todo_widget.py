@@ -244,23 +244,6 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         refresh_statistics_ui()
         page.update()
 
-    def compute_current_streak():
-        completed_days = set()
-        for task in tasks:
-            completed_date = parse_date(task.get("completed_at"))
-            if task.get("completed") and completed_date:
-                completed_days.add(completed_date)
-
-        if not completed_days:
-            return 0
-
-        streak = 0
-        cursor = datetime.now().date()
-        while cursor in completed_days:
-            streak += 1
-            cursor -= timedelta(days=1)
-        return streak
-
     def compute_monthly_stats():
         anchor = selected_month[0]
         today = datetime.now().date()
@@ -292,8 +275,11 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         )
 
         weekday_counts = [0] * 7
+        completed_days = set()
         for task in tasks:
             completed_at = parse_date(task.get("completed_at"))
+            if task.get("completed") and completed_at:
+                completed_days.add(completed_at)
             if task.get("completed") and same_month(completed_at, anchor):
                 weekday_counts[completed_at.weekday()] += 1
 
@@ -304,6 +290,12 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         else:
             most_productive = "Most productive day: No completed tasks this month"
 
+        streak = 0
+        cursor = today
+        while cursor in completed_days:
+            streak += 1
+            cursor -= timedelta(days=1)
+
         return {
             "total": total,
             "completed": completed,
@@ -312,7 +304,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
             "upcoming": upcoming,
             "weekday_counts": weekday_counts,
             "most_productive": most_productive,
-            "streak": compute_current_streak(),
+            "streak": streak,
         }
 
     def make_stat_card(label: str, value_control: ft.Control):
@@ -540,8 +532,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                     alignment=ft.Alignment(0, 0),
                 ),
                 alignment=ft.Alignment(0, 0),
-                on_click=lambda e, tid=task["id"], current=task["completed"]: toggle_task(tid, not current),
-                ink=True,
+                tooltip="Completion toggle is handled in a separate story",
             )
 
             # Task item row
@@ -612,16 +603,8 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         tasks_list_column.controls = rows
 
     def toggle_task(task_id: int, is_completed: bool):
-        """Pažymi/Atžymi užduotį kaip atliktą"""
-        for task in tasks:
-            if task["id"] == task_id:
-                task["completed"] = bool(is_completed)
-                task["completed_at"] = datetime.now().strftime("%Y-%m-%d") if is_completed else None
-                break
-        refresh_filter_ui()
-        refresh_tasks_list()
-        refresh_statistics_ui()
-        page.update()
+        """Reserved for separate implementation story."""
+        return
 
     def edit_task(task_id: int):
         open_task_form("edit", task_id)
