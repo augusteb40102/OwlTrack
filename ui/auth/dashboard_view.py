@@ -67,7 +67,7 @@ def dashboard_view(page: ft.Page):
             selected_id[0] = av["id"]
             break
 
-    # ── MAIN PANEL (keičiamas tarp home ir detail) ────────────────────
+    # ── MAIN PANEL ────────────────────────────────────────────────────
     main_panel = ft.Container(expand=True)
 
     # ── CALENDAR ─────────────────────────────────────────────────────
@@ -75,22 +75,212 @@ def dashboard_view(page: ft.Page):
         build_calendar(page, c, grad, main_panel)
 
     # ── TO-DO LIST ───────────────────────────────────────────────────
-    todo_detail_panel, get_todo_refs, refresh_todo_theme, set_todo_home_panel = \
-        build_todo(page, c, grad, main_panel, user_email)
+    (
+        todo_detail_panel,
+        get_todo_refs,
+        refresh_todo_theme,
+        set_todo_home_panel,
+        get_upcoming_tasks,
+        toggle_task_done,
+        set_dashboard_widget,
+    ) = build_todo(page, c, grad, main_panel, user_email)
 
-    # ── HOME PANEL ────────────────────────────────────────────────────
+    # ── UPCOMING TASKS MINI-WIDGET ────────────────────────────────────
+    # Column that holds the task rows – rebuilt on every refresh
+    upcoming_tasks_column = ft.Column(
+        spacing=6,
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+    )
 
+    def build_task_circle(task):
+        """
+        Apskritimas kairėje: tuščias = neatlikta, su tašku = atlikta.
+        Paspaudus tuščią apskritimą užduotis pažymima kaip atlikta.
+        """
+        is_done = task["completed"]
+        inner_dot = ft.Container(
+            width=8, height=8, border_radius=4,
+            bgcolor=c("TEXT_ON_PRIMARY"),
+            visible=is_done,
+            alignment=ft.Alignment(0, 0),
+        )
+        circle = ft.Container(
+            width=20, height=20, border_radius=10,
+            border=ft.border.all(2, c("PRIMARY") if is_done else c("BORDER")),
+            bgcolor=c("PRIMARY") if is_done else ft.Colors.TRANSPARENT,
+            content=inner_dot,
+            alignment=ft.Alignment(0, 0),
+            animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+            tooltip="Mark as done" if not is_done else "Completed",
+        )
+        if not is_done:
+            circle.on_click = lambda e, tid=task["id"]: toggle_task_done(tid)
+            circle.ink = True
+        return circle
+
+    def refresh_upcoming_widget():
+        """Atnaujina dashboard mini-widgeto turinį."""
+        upcoming = get_upcoming_tasks()
+        rows = []
+
+        if not upcoming:
+            rows.append(
+                ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        [
+                            ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE,
+                                    size=32, color=c("BORDER")),
+                            ft.Text(
+                                "All tasks done!",
+                                size=13, color=c("TEXT_SECONDARY"),
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=8,
+                    ),
+                    alignment=ft.Alignment(0, 0),
+                    padding=ft.padding.symmetric(vertical=16),
+                )
+            )
+        else:
+            for task in upcoming:
+                # Days-left label
+                try:
+                    from datetime import datetime as _dt
+                    due = _dt.strptime(task["due_date"], "%Y-%m-%d").date()
+                    today = _dt.now().date()
+                    delta = (due - today).days
+                    if delta == 0:
+                        days_label = "Today"
+                        days_color = th.ERROR
+                        days_weight = "bold"
+                    elif delta == 1:
+                        days_label = "Tomorrow"
+                        days_color = c("PRIMARY")
+                        days_weight = "bold"
+                    elif delta < 0:
+                        days_label = f"{abs(delta)}d overdue"
+                        days_color = th.ERROR
+                        days_weight = "w400"
+                    else:
+                        days_label = f"{delta}d left"
+                        days_color = c("TEXT_SECONDARY")
+                        days_weight = "w400"
+                except ValueError:
+                    days_label = "No date"
+                    days_color = c("TEXT_SECONDARY")
+                    days_weight = "w400"
+
+                type_colors_map = {
+                    "assignment": "#2196F3",
+                    "appointment": "#E91E63",
+                    "exam": "#9C27B0",
+                    "other": "#BDBDBD",
+                }
+                dot_color = type_colors_map.get(
+                    (task.get("type") or "").lower(), c("BORDER")
+                )
+
+                row = ft.Container(
+                    border_radius=10,
+                    border=ft.border.all(1, c("BORDER")),
+                    bgcolor=th.TEXT_ON_PRIMARY,
+                    padding=ft.padding.symmetric(horizontal=10, vertical=8),
+                    animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+                    content=ft.Row(
+                        [
+                            build_task_circle(task),
+                            ft.Column(
+                                [
+                                    ft.Text(
+                                        task["title"],
+                                        size=12,
+                                        weight="w600",
+                                        color=c("TEXT_PRIMARY"),
+                                        max_lines=1,
+                                        overflow=ft.TextOverflow.ELLIPSIS,
+                                    ),
+                                    ft.Row(
+                                        [
+                                            ft.Container(
+                                                width=7, height=7,
+                                                border_radius=4,
+                                                bgcolor=dot_color,
+                                            ),
+                                            ft.Text(
+                                                task.get("type", "Other"),
+                                                size=10,
+                                                color=c("TEXT_SECONDARY"),
+                                            ),
+                                            ft.Text("·", size=10, color=c("TEXT_SECONDARY")),
+                                            ft.Text(
+                                                days_label,
+                                                size=10,
+                                                color=days_color,
+                                                weight=days_weight,
+                                            ),
+                                        ],
+                                        spacing=4,
+                                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                    ),
+                                ],
+                                spacing=2,
+                                expand=True,
+                            ),
+                        ],
+                        spacing=8,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                )
+                rows.append(row)
+
+        upcoming_tasks_column.controls = rows
+
+    # Pradinis užpildymas
+    refresh_upcoming_widget()
+
+    # Registruojame callback'ą todo_widget viduje
+    set_dashboard_widget(refresh_upcoming_widget)
+
+    # Placeholder 1 – To-Do mini-widget'as
     widget_placeholder_1 = ft.Container(
         expand=True,
         border_radius=RADIUS_LG,
         bgcolor=th.TEXT_ON_PRIMARY,
         border=ft.border.all(2, c("BORDER")),
-        padding=ft.padding.all(16),
+        padding=ft.padding.all(14),
         on_click=lambda e: (
             setattr(main_panel, "content", todo_detail_panel),
             main_panel.update()
         ),
         ink=True,
+        content=ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text(
+                            "✔ To Do List",
+                            size=13, weight="bold",
+                            color=c("TEXT_PRIMARY"),
+                        ),
+                        ft.Container(expand=True),
+                        ft.Icon(
+                            ft.Icons.ARROW_FORWARD_IOS,
+                            size=12, color=c("TEXT_SECONDARY"),
+                        ),
+                    ],
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                ft.Container(height=8),
+                upcoming_tasks_column,
+            ],
+            spacing=0,
+            expand=True,
+        ),
     )
 
     widget_placeholder_2 = ft.Container(
@@ -103,21 +293,14 @@ def dashboard_view(page: ft.Page):
 
     right_column = ft.Column(
         [widget_placeholder_1, widget_placeholder_2],
-        spacing=12,
-        expand=False,
-        width=280,
+        spacing=12, expand=False, width=280,
     )
 
     home_panel = ft.Container(
         expand=True,
         content=ft.Row(
-            [
-                compact_calendar,
-                ft.Container(width=12),
-                right_column,
-            ],
-            spacing=0,
-            expand=True,
+            [compact_calendar, ft.Container(width=12), right_column],
+            spacing=0, expand=True,
             vertical_alignment=ft.CrossAxisAlignment.STRETCH,
         ),
     )
@@ -310,7 +493,6 @@ def dashboard_view(page: ft.Page):
 
     # ── SAVE SETTINGS ────────────────────────────────────────────────
     def save_settings(e):
-        # 1. Avataro išsaugojimas
         if selected_id[0] is not None:
             chosen = next((a for a in PROFILE_AVATARS if a["id"] == selected_id[0]), None)
             if chosen:
@@ -321,7 +503,6 @@ def dashboard_view(page: ft.Page):
                     db_save_avatar(user_email, chosen["src"])
                 avatar_slot.content = build_avatar_content(chosen["src"])
 
-        # 2. Temos išsaugojimas
         new_theme = selected_theme[0]
         if user_email:
             db_save_theme(user_email, new_theme)
@@ -354,7 +535,7 @@ def dashboard_view(page: ft.Page):
         logout_cancel_btn.content.color  = c("TEXT_SECONDARY")
         logout_confirm_btn.bgcolor       = c("PRIMARY")
 
-        # Password
+        # Password fields
         for field in [old_password_field, new_password_field, repeat_new_password_field]:
             field.bgcolor              = c("SURFACE")
             field.border_color         = c("BORDER")
@@ -378,11 +559,12 @@ def dashboard_view(page: ft.Page):
         widget_placeholder_1.border = ft.border.all(2, c("BORDER"))
         widget_placeholder_2.border = ft.border.all(2, c("BORDER"))
 
-        # To-do panel — atnaujina visus refs
-        todo_refs = get_todo_refs()
+        # To-do
         refresh_todo_theme()
+        # Atnaujinti mini-widgetą po temos pakeitimo
+        refresh_upcoming_widget()
 
-        # Kalendorius — atnaujina visus refs ir perkuria grid'us
+        # Kalendorius
         cal_refs = get_cal_refs()
         cal_refs["compact_calendar"].border      = ft.border.all(2, c("BORDER"))
         cal_refs["compact_month_label"].color    = c("TEXT_PRIMARY")
@@ -596,8 +778,9 @@ def dashboard_view(page: ft.Page):
         alignment=ft.Alignment(0, 0),
     )
 
-    arrow_icon = ft.Icon(icon=ft.Icons.KEYBOARD_ARROW_DOWN, color=c("TEXT_ON_PRIMARY"), size=16, opacity=0.7)
-    expanded   = [False]
+    arrow_icon = ft.Icon(icon=ft.Icons.KEYBOARD_ARROW_DOWN,
+                         color=c("TEXT_ON_PRIMARY"), size=16, opacity=0.7)
+    expanded = [False]
 
     def toggle_email(e):
         expanded[0] = not expanded[0]
@@ -639,7 +822,7 @@ def dashboard_view(page: ft.Page):
             spacing=6, alignment=ft.MainAxisAlignment.CENTER,
         ),
         on_click=lambda e: (
-            setattr(main_panel, 'content', home_panel),
+            setattr(main_panel, "content", home_panel),
             main_panel.update()
         ),
         ink=True, border_radius=8,
