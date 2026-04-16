@@ -86,22 +86,30 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
                     entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
                     entries = get_calendar_entries(user_email, entry_date)
                     mood_icon = entries[-1]["mood"] if entries and entries[-1]["mood"] else None
+                    
+                    # Determine if day has activity for background color
+                    has_activity = entries and entries[-1]["activity"]
 
+                    # Build formatted tooltip text
                     tooltip_text = None
-                    if entries:
+                    if entries and (entries[-1]["activity"] or entries[-1]["mood"]):
                         last = entries[-1]
                         parts = []
                         if last["activity"]:
-                            parts.append(last["activity"])
+                            parts.append(f"Activity:\n{last['activity']}")
                         if last["mood"]:
-                            parts.append(last["mood"])
-                        tooltip_text = " | ".join(parts)
+                            parts.append(f"Mood: {last['mood']}")
+                        if parts:
+                            tooltip_text = "\n\n".join(parts)
 
                     cell_content = [num_box]
                     if mood_icon:
                         cell_content.append(
                             ft.Text(mood_icon, size=14, text_align=ft.TextAlign.CENTER)
                         )
+
+                    # Set background color: light purple if activity exists, else default
+                    cell_bgcolor = ft.Colors.with_opacity(0.22, ft.Colors.PURPLE) if has_activity else ft.Colors.with_opacity(0.07, c("SECONDARY"))
 
                     cell = ft.Container(
                         content=ft.Column(
@@ -112,7 +120,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
                         expand=True, height=cell_h,
                         border_radius=8,
                         border=ft.border.all(1, ft.Colors.with_opacity(0.12, c("SECONDARY"))),
-                        bgcolor=ft.Colors.with_opacity(0.07, c("SECONDARY")),
+                        bgcolor=cell_bgcolor,
                         alignment=ft.Alignment(0, -0.7),
                         on_click=lambda e, d=day: on_click_fn(d),
                         tooltip=tooltip_text,
