@@ -167,10 +167,15 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
     mood_btns = {}
 
     def on_mood_select(mood):
-        selected_mood[0] = mood
+        if selected_mood[0] == mood:
+            # If clicking the same mood again, deselect it
+            selected_mood[0] = None
+        else:
+            # Otherwise, select the mood
+            selected_mood[0] = mood
         for m, btn in mood_btns.items():
-            btn.bgcolor = c("SECONDARY") if m == mood else ft.Colors.TRANSPARENT
-            btn.border = ft.border.all(2, c("SECONDARY") if m == mood else c("BORDER"))
+            btn.bgcolor = c("SECONDARY") if m == selected_mood[0] else ft.Colors.TRANSPARENT
+            btn.border = ft.border.all(2, c("SECONDARY") if m == selected_mood[0] else c("BORDER"))
         page.update()
 
     activity_field = ft.TextField(
@@ -206,14 +211,17 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
         activity = activity_field.value
         mood = selected_mood[0]
         print(f"Saving: activity={activity}, mood={mood}, day={selected_day[0]}, email={user_email}")
-        if activity or mood:
-            entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{selected_day[0]:02d}"
-            save_calendar_entry(user_email, entry_date, activity or "", mood or "")
+        # Always save the entry, even if empty (to overwrite previous values)
+        entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{selected_day[0]:02d}"
+        save_calendar_entry(user_email, entry_date, activity or "", mood or "")
         activity_field.value = ""
         selected_mood[0] = None
         for btn in mood_btns.values():
             btn.bgcolor = ft.Colors.TRANSPARENT
             btn.border = ft.border.all(2, c("BORDER"))
+        # Refresh both calendar views to show the newly saved emotion immediately
+        _refresh_compact()
+        _refresh_detail()
         close_popup()
 
     mood_row = build_mood_row()
@@ -347,11 +355,24 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
         _refresh_detail()
         _refresh_compact()
         day_popup.title.value = f"{MONTH_NAMES[cal_month[0]-1]} {day}, {cal_year[0]}"
-        activity_field.value = ""
-        selected_mood[0] = None
-        for btn in mood_btns.values():
-            btn.bgcolor = ft.Colors.TRANSPARENT
-            btn.border = ft.border.all(2, c("BORDER"))
+        
+        # Load existing entry data if it exists
+        entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
+        entries = get_calendar_entries(user_email, entry_date)
+        
+        if entries:
+            last_entry = entries[-1]
+            activity_field.value = last_entry["activity"] or ""
+            selected_mood[0] = last_entry["mood"] or None
+        else:
+            activity_field.value = ""
+            selected_mood[0] = None
+        
+        # Update mood button states based on selected mood
+        for m, btn in mood_btns.items():
+            btn.bgcolor = c("SECONDARY") if m == selected_mood[0] else ft.Colors.TRANSPARENT
+            btn.border = ft.border.all(2, c("SECONDARY") if m == selected_mood[0] else c("BORDER"))
+        
         day_popup.open = True
         if day_popup not in page.overlay:
             page.overlay.append(day_popup)
