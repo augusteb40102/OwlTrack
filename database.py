@@ -172,10 +172,27 @@ def login_user(email: str, password: str) -> dict:
 def save_calendar_entry(user_email: str, entry_date: str, activity: str, mood: str) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
+    # Check if entry already exists
     cursor.execute("""
-        INSERT INTO calendar_entries (user_email, entry_date, activity, mood)
-        VALUES (?, ?, ?, ?)
-    """, (user_email, entry_date, activity, mood))
+        SELECT rowid FROM calendar_entries
+        WHERE user_email = ? AND entry_date = ?
+    """, (user_email, entry_date))
+    existing = cursor.fetchone()
+    
+    if existing:
+        # Update existing entry
+        cursor.execute("""
+            UPDATE calendar_entries
+            SET activity = ?, mood = ?
+            WHERE user_email = ? AND entry_date = ?
+        """, (activity, mood, user_email, entry_date))
+    else:
+        # Insert new entry
+        cursor.execute("""
+            INSERT INTO calendar_entries (user_email, entry_date, activity, mood)
+            VALUES (?, ?, ?, ?)
+        """, (user_email, entry_date, activity, mood))
+    
     conn.commit()
     conn.close()
     return {"success": True}
