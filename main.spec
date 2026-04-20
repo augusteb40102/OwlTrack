@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets', 'assets'), ('.env', '.')],
+    datas=[('assets', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,6 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='C:\\Users\\auste\\AppData\\Local\\Temp\\87aeeecf-301d-4326-929a-f1d07de4b6ea',
+    version='C:\\Users\\auste\\AppData\\Local\\Temp\\01e7641f-4bb5-46e6-a7fa-1f9fe1d8b77d',
     icon=['assets\\owl_clean.ico'],
 )
