@@ -109,7 +109,7 @@ def login_view(page: ft.Page):
         value=bool(saved),
         active_color=_PRIMARY,
         check_color=_TEXT_ON_PRIMARY,
-        label_style=ft.TextStyle(color=_TEXT_SECONDARY, size=FONT_XS),
+        label_style=ft.TextStyle(color="#1a1040", size=FONT_XS, weight="w600"),
     )
 
     error_text = ft.Text("", color=_ERROR, size=FONT_XS, visible=False)
