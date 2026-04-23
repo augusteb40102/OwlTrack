@@ -88,11 +88,13 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
 
     tasks_list_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
     dialog_title = ft.Text("", size=16, weight="bold", color=c("TEXT_PRIMARY"))
-    title_field = ft.TextField(label="Task title", bgcolor=c("SURFACE"), border_color=c("BORDER"), focused_border_color=c("PRIMARY"))
+    title_field = ft.TextField(label="Task title", bgcolor=c("SURFACE"), border_color=c("BORDER"), focused_border_color=c("PRIMARY"), text_style=ft.TextStyle(color=c("TEXT_PRIMARY")), label_style=ft.TextStyle(color=c("TEXT_SECONDARY")))
     type_field = ft.Dropdown(
         label="Type", value="Assignment", width=420,
         options=[build_type_option(t) for t in ["Assignment", "Appointment", "Exam", "Other"]],
         bgcolor=c("SURFACE"), border_color=c("BORDER"), focused_border_color=c("PRIMARY"),
+        text_style=ft.TextStyle(color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
     )
 
     def refresh_type_field_icon():
@@ -108,6 +110,9 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     due_date_field = ft.TextField(
         label="Due date (YYYY-MM-DD)", expand=True, read_only=True,
         bgcolor=c("SURFACE"), border_color=c("BORDER"), focused_border_color=c("PRIMARY"),
+        text_style=ft.TextStyle(color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+        color=c("TEXT_PRIMARY"),    
     )
 
     # ── DatePicker: fix timezone off-by-one ──────────────────────────
@@ -123,7 +128,11 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     def on_date_change(e):
         if e.control.value:
             v = e.control.value.replace(tzinfo=None)
-            due_date_field.value = f"{v.year:04d}-{v.month:02d}-{v.day:02d}"
+
+            from datetime import timedelta
+            v_local = v + timedelta(hours=12)
+            v_local = v_local.replace(tzinfo=None)
+            due_date_field.value = f"{v_local.year:04d}-{v_local.month:02d}-{v_local.day:02d}"
             page.update()
 
     date_picker.on_change = on_date_change

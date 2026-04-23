@@ -11,7 +11,7 @@ MONTH_NAMES = ["January","February","March","April","May","June",
 RADIUS_LG = 20
 
 
-def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str = ""):
+def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str = "", get_tasks_fn=None):
     """
     Sukuria kompaktinį ir detalų kalendorių.
 
@@ -89,27 +89,41 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
                     
                     # Determine if day has activity for background color
                     has_activity = entries and entries[-1]["activity"]
+                    todo_tasks = []
+                    if get_tasks_fn:
+                        for task in get_tasks_fn():
+                            if task.get("due_date") == entry_date:
+                                todo_tasks.append(task)
+                    has_todo = bool(todo_tasks)
 
-                    # Build formatted tooltip text
-                    tooltip_text = None
+                    # Tooltip
+                    tooltip_parts = []
                     if entries and (entries[-1]["activity"] or entries[-1]["mood"]):
                         last = entries[-1]
-                        parts = []
                         if last["activity"]:
-                            parts.append(f"Activity:\n{last['activity']}")
+                            tooltip_parts.append(f"Activity: {last['activity']}")
                         if last["mood"]:
-                            parts.append(f"Mood: {last['mood']}")
-                        if parts:
-                            tooltip_text = "\n\n".join(parts)
+                            tooltip_parts.append(f"Mood: {last['mood']}")
+                    for task in todo_tasks:
+                        tooltip_parts.append(f"📌 {task['title']} ({task['type']})")
+                    tooltip_text = "\n".join(tooltip_parts) if tooltip_parts else None
 
+                    # Spalva
+                    if has_activity and has_todo:
+                        cell_bgcolor = ft.Colors.with_opacity(0.25, ft.Colors.PURPLE)
+                    elif has_todo:
+                        cell_bgcolor = ft.Colors.with_opacity(0.20, ft.Colors.BLUE)
+                    elif has_activity:
+                        cell_bgcolor = ft.Colors.with_opacity(0.22, ft.Colors.PURPLE)
+                    else:
+                        cell_bgcolor = ft.Colors.with_opacity(0.07, c("SECONDARY"))
+
+                    # Cell content
                     cell_content = [num_box]
                     if mood_icon:
-                        cell_content.append(
-                            ft.Text(mood_icon, size=14, text_align=ft.TextAlign.CENTER)
-                        )
-
-                    # Set background color: light purple if activity exists, else default
-                    cell_bgcolor = ft.Colors.with_opacity(0.22, ft.Colors.PURPLE) if has_activity else ft.Colors.with_opacity(0.07, c("SECONDARY"))
+                        cell_content.append(ft.Text(mood_icon, size=14, text_align=ft.TextAlign.CENTER))
+                    if has_todo:
+                        cell_content.append(ft.Text("📌", size=11, text_align=ft.TextAlign.CENTER))
 
                     cell = ft.Container(
                         content=ft.Column(
@@ -367,6 +381,26 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
         # Load existing entry data if it exists
         entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
         entries = get_calendar_entries(user_email, entry_date)
+        mood_icon = entries[-1]["mood"] if entries and entries[-1]["mood"] else None
+        has_activity = entries and entries[-1]["activity"]
+        # To-do list užduotys šiai datai
+        todo_tasks = []
+        if get_tasks_fn:
+            for task in get_tasks_fn():
+                if task.get("due_date") == entry_date:
+                    todo_tasks.append(task)
+
+        # Tooltip
+        tooltip_parts = []
+        if entries and (entries[-1]["activity"] or entries[-1]["mood"]):
+            last = entries[-1]
+            if last["activity"]:
+                tooltip_parts.append(f"Activity: {last['activity']}")
+            if last["mood"]:
+                tooltip_parts.append(f"Mood: {last['mood']}")
+        for task in todo_tasks:
+            tooltip_parts.append(f"📌 {task['title']} ({task['type']})")
+        tooltip_text = "\n".join(tooltip_parts) if tooltip_parts else None
         
         if entries:
             last_entry = entries[-1]

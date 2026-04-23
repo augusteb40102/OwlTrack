@@ -70,10 +70,6 @@ def dashboard_view(page: ft.Page):
     # ── MAIN PANEL ────────────────────────────────────────────────────
     main_panel = ft.Container(expand=True)
 
-    # ── CALENDAR ─────────────────────────────────────────────────────
-    compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
-        build_calendar(page, c, grad, main_panel)
-
     # ── TO-DO LIST ───────────────────────────────────────────────────
     (
         todo_detail_panel,
@@ -84,6 +80,10 @@ def dashboard_view(page: ft.Page):
         toggle_task_done,
         set_dashboard_widget,
     ) = build_todo(page, c, grad, main_panel, user_email)
+    
+     # ── CALENDAR ─────────────────────────────────────────────────────
+    compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
+        build_calendar(page, c, grad, main_panel, user_email, get_tasks_fn=get_upcoming_tasks)
 
     # ── UPCOMING TASKS MINI-WIDGET ────────────────────────────────────
     # Column that holds the task rows – rebuilt on every refresh
