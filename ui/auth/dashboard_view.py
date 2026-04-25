@@ -3,6 +3,8 @@ import ui.themes.themes as th
 from ui.themes.themes import apply_theme, THEMES
 from ui.components.calendar_widget import build_calendar
 from ui.components.todo_widget import build_todo
+from ui.components.grade_calculator_widget import build_grade_calculator
+
 from database import save_avatar as db_save_avatar
 from database import change_user_password as db_change_user_password
 from database import save_theme as db_save_theme
@@ -26,6 +28,15 @@ THEME_OPTIONS = [
     {"id": "grey",   "label": "Grey",              "dot": "#5A5A5A"},
     {"id": "green",  "label": "Green",             "dot": "#22c55e"},
 ]
+
+# ---------------------------------------------------------------------------
+# Grade calculator duomenys (vėliau pakeisti DB)
+# ---------------------------------------------------------------------------
+_SAMPLE_MODULES = [
+    {"name": "Matematika", "grade": 8.7, "weight": 9.0},
+    {"name": "Istorija",   "grade": 7.0, "weight": 9.0},
+]
+_GOAL = 9.0
 
 
 def dashboard_view(page: ft.Page):
@@ -70,6 +81,10 @@ def dashboard_view(page: ft.Page):
     # ── MAIN PANEL ────────────────────────────────────────────────────
     main_panel = ft.Container(expand=True)
 
+    # ── CALENDAR ─────────────────────────────────────────────────────
+    compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
+        build_calendar(page, c, grad, main_panel)
+
     # ── TO-DO LIST ───────────────────────────────────────────────────
     (
         todo_detail_panel,
@@ -80,13 +95,8 @@ def dashboard_view(page: ft.Page):
         toggle_task_done,
         set_dashboard_widget,
     ) = build_todo(page, c, grad, main_panel, user_email)
-    
-     # ── CALENDAR ─────────────────────────────────────────────────────
-    compact_calendar, detail_view_panel, get_cal_refs, refresh_cal_theme, set_home_panel = \
-        build_calendar(page, c, grad, main_panel, user_email, get_tasks_fn=get_upcoming_tasks)
 
     # ── UPCOMING TASKS MINI-WIDGET ────────────────────────────────────
-    # Column that holds the task rows – rebuilt on every refresh
     upcoming_tasks_column = ft.Column(
         spacing=6,
         scroll=ft.ScrollMode.AUTO,
@@ -94,10 +104,6 @@ def dashboard_view(page: ft.Page):
     )
 
     def build_task_circle(task):
-        """
-        Apskritimas kairėje: tuščias = neatlikta, su tašku = atlikta.
-        Paspaudus tuščią apskritimą užduotis pažymima kaip atlikta.
-        """
         is_done = task["completed"]
         inner_dot = ft.Container(
             width=8, height=8, border_radius=4,
@@ -120,7 +126,6 @@ def dashboard_view(page: ft.Page):
         return circle
 
     def refresh_upcoming_widget():
-        """Atnaujina dashboard mini-widgeto turinį."""
         upcoming = get_upcoming_tasks()
         rows = []
 
@@ -130,8 +135,7 @@ def dashboard_view(page: ft.Page):
                     expand=True,
                     content=ft.Column(
                         [
-                            ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE,
-                                    size=32, color=c("BORDER")),
+                            ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=32, color=c("BORDER")),
                             ft.Text(
                                 "All tasks done!",
                                 size=13, color=c("TEXT_SECONDARY"),
@@ -148,32 +152,21 @@ def dashboard_view(page: ft.Page):
             )
         else:
             for task in upcoming:
-                # Days-left label
                 try:
                     from datetime import datetime as _dt
-                    due = _dt.strptime(task["due_date"], "%Y-%m-%d").date()
+                    due   = _dt.strptime(task["due_date"], "%Y-%m-%d").date()
                     today = _dt.now().date()
                     delta = (due - today).days
                     if delta == 0:
-                        days_label = "Today"
-                        days_color = th.ERROR
-                        days_weight = "bold"
+                        days_label, days_color, days_weight = "Today",    th.ERROR,          "bold"
                     elif delta == 1:
-                        days_label = "Tomorrow"
-                        days_color = c("PRIMARY")
-                        days_weight = "bold"
+                        days_label, days_color, days_weight = "Tomorrow", c("PRIMARY"),       "bold"
                     elif delta < 0:
-                        days_label = f"{abs(delta)}d overdue"
-                        days_color = th.ERROR
-                        days_weight = "w400"
+                        days_label, days_color, days_weight = f"{abs(delta)}d overdue", th.ERROR, "w400"
                     else:
-                        days_label = f"{delta}d left"
-                        days_color = c("TEXT_SECONDARY")
-                        days_weight = "w400"
+                        days_label, days_color, days_weight = f"{delta}d left", c("TEXT_SECONDARY"), "w400"
                 except ValueError:
-                    days_label = "No date"
-                    days_color = c("TEXT_SECONDARY")
-                    days_weight = "w400"
+                    days_label, days_color, days_weight = "No date", c("TEXT_SECONDARY"), "w400"
 
                 type_colors_map = {
                     "assignment": "#2196F3",
@@ -181,9 +174,7 @@ def dashboard_view(page: ft.Page):
                     "exam": "#9C27B0",
                     "other": "#BDBDBD",
                 }
-                dot_color = type_colors_map.get(
-                    (task.get("type") or "").lower(), c("BORDER")
-                )
+                dot_color = type_colors_map.get((task.get("type") or "").lower(), c("BORDER"))
 
                 row = ft.Container(
                     border_radius=10,
@@ -197,39 +188,22 @@ def dashboard_view(page: ft.Page):
                             ft.Column(
                                 [
                                     ft.Text(
-                                        task["title"],
-                                        size=12,
-                                        weight="w600",
-                                        color=c("TEXT_PRIMARY"),
-                                        max_lines=1,
+                                        task["title"], size=12, weight="w600",
+                                        color=c("TEXT_PRIMARY"), max_lines=1,
                                         overflow=ft.TextOverflow.ELLIPSIS,
                                     ),
                                     ft.Row(
                                         [
-                                            ft.Container(
-                                                width=7, height=7,
-                                                border_radius=4,
-                                                bgcolor=dot_color,
-                                            ),
-                                            ft.Text(
-                                                task.get("type", "Other"),
-                                                size=10,
-                                                color=c("TEXT_SECONDARY"),
-                                            ),
+                                            ft.Container(width=7, height=7, border_radius=4, bgcolor=dot_color),
+                                            ft.Text(task.get("type", "Other"), size=10, color=c("TEXT_SECONDARY")),
                                             ft.Text("·", size=10, color=c("TEXT_SECONDARY")),
-                                            ft.Text(
-                                                days_label,
-                                                size=10,
-                                                color=days_color,
-                                                weight=days_weight,
-                                            ),
+                                            ft.Text(days_label, size=10, color=days_color, weight=days_weight),
                                         ],
                                         spacing=4,
                                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                     ),
                                 ],
-                                spacing=2,
-                                expand=True,
+                                spacing=2, expand=True,
                             ),
                         ],
                         spacing=8,
@@ -240,13 +214,10 @@ def dashboard_view(page: ft.Page):
 
         upcoming_tasks_column.controls = rows
 
-    # Pradinis užpildymas
     refresh_upcoming_widget()
-
-    # Registruojame callback'ą todo_widget viduje
     set_dashboard_widget(refresh_upcoming_widget)
 
-    # Placeholder 1 – To-Do mini-widget'as
+    # ── TO-DO WIDGET (placeholder 1) ──────────────────────────────────
     widget_placeholder_1 = ft.Container(
         expand=True,
         border_radius=RADIUS_LG,
@@ -262,35 +233,321 @@ def dashboard_view(page: ft.Page):
             [
                 ft.Row(
                     [
-                        ft.Text(
-                            "✔ To Do List",
-                            size=13, weight="bold",
-                            color=c("TEXT_PRIMARY"),
-                        ),
+                        ft.Text("✔ To Do List", size=13, weight="bold", color=c("TEXT_PRIMARY")),
                         ft.Container(expand=True),
-                        ft.Icon(
-                            ft.Icons.ARROW_FORWARD_IOS,
-                            size=12, color=c("TEXT_SECONDARY"),
-                        ),
+                        ft.Icon(ft.Icons.ARROW_FORWARD_IOS, size=12, color=c("TEXT_SECONDARY")),
                     ],
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
                 ft.Container(height=8),
                 upcoming_tasks_column,
             ],
-            spacing=0,
-            expand=True,
+            spacing=0, expand=True,
         ),
     )
 
-    widget_placeholder_2 = ft.Container(
-        expand=True,
-        border_radius=RADIUS_LG,
-        bgcolor=th.TEXT_ON_PRIMARY,
-        border=ft.border.all(2, c("BORDER")),
-        padding=ft.padding.all(16),
+    # ── GRADE CALCULATOR ─────────────────────────────────────────────
+    gc_modules: list[dict] = list(_SAMPLE_MODULES)
+    gc_goal:    list[float] = [_GOAL]
+
+    subj_options = [
+        "Matematika", "Istorija", "Fizika", "Chemija",
+        "Biologija", "Anglų k.", "Lietuvių k.", "Geografija", "Informatika",
+    ]
+
+    def _weighted_avg(mods):
+        total_w = sum(m["weight"] for m in mods)
+        if not total_w:
+            return None
+        return sum(m["grade"] * m["weight"] for m in mods) / total_w
+
+    # Shared text refs
+    gc_dash_avg   = ft.Text("—", size=28, weight="bold", color=c("TEXT_PRIMARY"))
+    gc_dash_goal  = ft.Text(f"{gc_goal[0]:.1f}", size=18, weight="bold", color=c("TEXT_ON_PRIMARY"))
+    gc_dash_mods  = ft.Column(spacing=4)
+
+    gc_det_avg    = ft.Text("—", size=22, weight="bold", color=c("TEXT_PRIMARY"))
+    gc_det_count  = ft.Text("0",  size=22, weight="bold", color=c("TEXT_PRIMARY"))
+    gc_det_status = ft.Text("",  size=12, weight="w500")
+    gc_det_table  = ft.Column(spacing=0)
+
+    gc_error_text = ft.Text("", color="#E53935", size=12, visible=False)
+
+    # Detail fields
+    gc_subj_dd = ft.Dropdown(
+        options=[ft.dropdown.Option(s) for s in subj_options],
+        value=subj_options[0], width=160,
+        text_style=ft.TextStyle(size=13, color=c("TEXT_PRIMARY")),
+        bgcolor=c("SURFACE"), border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
+    )
+    gc_grade_f = ft.TextField(
+        label="Pažymys", width=90,
+        keyboard_type=ft.KeyboardType.NUMBER,
+        text_style=ft.TextStyle(size=13, color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+        bgcolor=c("SURFACE"), border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
+    )
+    gc_weight_f = ft.TextField(
+        label="Svoris", width=80, value="9",
+        keyboard_type=ft.KeyboardType.NUMBER,
+        text_style=ft.TextStyle(size=13, color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+        bgcolor=c("SURFACE"), border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
+    )
+    gc_goal_f = ft.TextField(
+        label="Tikslas", width=80, value=str(gc_goal[0]),
+        keyboard_type=ft.KeyboardType.NUMBER,
+        text_style=ft.TextStyle(size=13, color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+        bgcolor=c("SURFACE"), border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
     )
 
+    def gc_render_dash():
+        avg = _weighted_avg(gc_modules)
+        gc_dash_avg.value  = f"{avg:.1f}" if avg is not None else "—"
+        gc_dash_goal.value = f"{gc_goal[0]:.1f}"
+        rows = []
+        for m in gc_modules:
+            rows.append(ft.Row([
+                ft.Text(m["name"],           size=12, color=c("TEXT_PRIMARY"), expand=True),
+                ft.Text(f"{m['grade']:.1f}", size=12, weight="bold", color=c("TEXT_PRIMARY")),
+                ft.Text(f"×{m['weight']:.0f}", size=11, color=c("TEXT_SECONDARY"),
+                        width=28, text_align=ft.TextAlign.RIGHT),
+            ], spacing=6))
+        gc_dash_mods.controls = rows if rows else [
+            ft.Text("Nėra modulių", size=12, color=c("TEXT_SECONDARY"))
+        ]
+
+    def gc_render_detail():
+        avg = _weighted_avg(gc_modules)
+        gc_det_avg.value   = f"{avg:.1f}" if avg is not None else "—"
+        gc_det_count.value = str(len(gc_modules))
+
+        if avg is None:
+            gc_det_status.value = ""
+        elif avg >= gc_goal[0]:
+            gc_det_status.value = "✓ Tikslas pasiektas"
+            gc_det_status.color = c("PRIMARY")
+        else:
+            gc_det_status.value = f"Trūksta {gc_goal[0] - avg:.1f} balo"
+            gc_det_status.color = "#E53935"
+
+        rows = [
+            ft.Container(
+                padding=ft.padding.symmetric(vertical=6),
+                border=ft.border.only(bottom=ft.BorderSide(1, c("BORDER"))),
+                content=ft.Row([
+                    ft.Text("Dalykas",  size=11, color=c("TEXT_SECONDARY"), weight="w500", expand=True),
+                    ft.Text("Pažymys", size=11, color=c("TEXT_SECONDARY"), weight="w500",
+                            width=60, text_align=ft.TextAlign.CENTER),
+                    ft.Text("Svoris",  size=11, color=c("TEXT_SECONDARY"), weight="w500",
+                            width=50, text_align=ft.TextAlign.CENTER),
+                    ft.Container(width=28),
+                ], spacing=4),
+            )
+        ]
+        for i, m in enumerate(gc_modules):
+            rows.append(
+                ft.Container(
+                    padding=ft.padding.symmetric(vertical=8),
+                    border=ft.border.only(bottom=ft.BorderSide(1, c("BORDER"))),
+                    content=ft.Row([
+                        ft.Text(m["name"], size=13, color=c("TEXT_PRIMARY"), expand=True),
+                        ft.Text(f"{m['grade']:.1f}", size=13, weight="bold",
+                                color=c("TEXT_PRIMARY"), width=60, text_align=ft.TextAlign.CENTER),
+                        ft.Text(f"{m['weight']:.0f}", size=12, color=c("TEXT_SECONDARY"),
+                                width=50, text_align=ft.TextAlign.CENTER),
+                        ft.IconButton(
+                            icon=ft.Icons.CLOSE, icon_size=14,
+                            icon_color=c("TEXT_SECONDARY"),
+                            width=28, height=28,
+                            on_click=lambda e, ii=i: gc_remove(ii),
+                            tooltip="Pašalinti",
+                        ),
+                    ], spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                )
+            )
+        gc_det_table.controls = rows
+
+    def gc_refresh():
+        gc_render_dash()
+        gc_render_detail()
+        page.update()
+
+    def gc_add(e):
+        gc_error_text.visible = False
+        try:
+            g = float((gc_grade_f.value or "").replace(",", "."))
+            w = float((gc_weight_f.value or "9").replace(",", "."))
+        except ValueError:
+            gc_error_text.value   = "Pažymys ir svoris turi būti skaičiai"
+            gc_error_text.visible = True
+            page.update()
+            return
+        if not (1 <= g <= 10):
+            gc_error_text.value   = "Pažymys turi būti tarp 1 ir 10"
+            gc_error_text.visible = True
+            page.update()
+            return
+        gc_modules.append({"name": gc_subj_dd.value, "grade": g, "weight": w})
+        gc_grade_f.value = ""
+        gc_refresh()
+
+    def gc_remove(idx: int):
+        if 0 <= idx < len(gc_modules):
+            gc_modules.pop(idx)
+            gc_refresh()
+
+    def gc_goal_changed(e):
+        try:
+            gc_goal[0] = float((gc_goal_f.value or "9").replace(",", "."))
+        except ValueError:
+            pass
+        gc_refresh()
+
+    gc_goal_f.on_change = gc_goal_changed
+
+    # ── Grade calculator: detail panel ───────────────────────────────
+    gc_add_btn = ft.Container(
+        content=ft.Text("Pridėti", size=13, color=c("TEXT_ON_PRIMARY"), weight="w600"),
+        on_click=gc_add, ink=True, border_radius=8,
+        padding=ft.padding.symmetric(horizontal=18, vertical=9),
+        gradient=grad(), alignment=ft.Alignment(0, 0),
+    )
+
+    gc_detail_header = ft.Container(
+        padding=ft.padding.symmetric(horizontal=16, vertical=12),
+        gradient=grad(),
+        content=ft.Row(
+            [
+                ft.IconButton(
+                    icon=ft.Icons.ARROW_BACK_IOS_NEW,
+                    icon_size=16, icon_color=c("TEXT_ON_PRIMARY"),
+                    on_click=lambda e: _gc_go_home(),
+                    tooltip="Grįžti",
+                ),
+                ft.Text("Pažymių skaičiuoklė", size=15, weight="bold",
+                        color=c("TEXT_ON_PRIMARY"), expand=True),
+            ],
+            spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    gc_summary_row = ft.Row(
+        [
+            ft.Container(
+                expand=True, border_radius=12,
+                bgcolor=c("SURFACE"), border=ft.border.all(1, c("BORDER")),
+                padding=ft.padding.symmetric(horizontal=12, vertical=10),
+                content=ft.Column(
+                    [ft.Text("Svertinis vidurkis", size=11, color=c("TEXT_SECONDARY"), weight="w500"), gc_det_avg],
+                    spacing=2, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            ),
+            ft.Container(
+                expand=True, border_radius=12,
+                bgcolor=c("SURFACE"), border=ft.border.all(1, c("BORDER")),
+                padding=ft.padding.symmetric(horizontal=12, vertical=10),
+                content=ft.Column(
+                    [ft.Text("Dalykų skaičius", size=11, color=c("TEXT_SECONDARY"), weight="w500"), gc_det_count],
+                    spacing=2, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            ),
+        ],
+        spacing=10,
+    )
+
+    gc_detail_panel = ft.Container(
+        expand=True,
+        border=ft.border.all(1, c("BORDER")),
+        border_radius=RADIUS_LG,
+        bgcolor=c("SURFACE"),
+        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+        content=ft.Column(
+            [
+                gc_detail_header,
+                ft.Container(
+                    expand=True,
+                    padding=ft.padding.all(16),
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [gc_subj_dd, gc_grade_f, gc_weight_f, gc_add_btn],
+                                spacing=8,
+                                vertical_alignment=ft.CrossAxisAlignment.END,
+                                wrap=True,
+                            ),
+                            gc_error_text,
+                            ft.Container(height=8),
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    [gc_det_table],
+                                    scroll=ft.ScrollMode.AUTO,
+                                    expand=True,
+                                ),
+                            ),
+                            ft.Container(height=12),
+                            gc_summary_row,
+                            ft.Container(height=8),
+                            ft.Row(
+                                [
+                                    ft.Text("Tikslas:", size=13, color=c("TEXT_SECONDARY")),
+                                    gc_goal_f,
+                                    gc_det_status,
+                                ],
+                                spacing=10,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                        ],
+                        spacing=4, expand=True,
+                    ),
+                ),
+            ],
+            spacing=0, expand=True,
+        ),
+    )
+
+    def _gc_go_home():
+        main_panel.content = home_panel
+        main_panel.update()
+
+    def _gc_open_detail():
+        gc_render_detail()
+        main_panel.content = gc_detail_panel
+        main_panel.update()
+
+    # ── Grade calculator: compact dashboard widget ────────────────────
+    gc_goal_badge = ft.Container(
+        content=ft.Column(
+            [
+                ft.Text("TIKSLAS", size=9, color=c("TEXT_ON_PRIMARY"), weight="w500",
+                        text_align=ft.TextAlign.CENTER),
+                gc_dash_goal,
+            ],
+            spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.padding.symmetric(horizontal=10, vertical=8),
+        border_radius=10, gradient=grad(), alignment=ft.Alignment(0, 0),
+    )
+
+    
+    (
+    widget_placeholder_2,
+    gc_detail_panel,
+    refresh_grade_theme,
+    set_gc_home_panel,
+) = build_grade_calculator(page, c, grad, main_panel)
+
+    # Pradinis render
+    gc_render_dash()
+    gc_render_detail()
+
+    # ── RIGHT COLUMN ──────────────────────────────────────────────────
     right_column = ft.Column(
         [widget_placeholder_1, widget_placeholder_2],
         spacing=12, expand=False, width=280,
@@ -307,6 +564,7 @@ def dashboard_view(page: ft.Page):
 
     main_panel.content = home_panel
     set_home_panel(home_panel)
+    set_gc_home_panel(home_panel)
     set_todo_home_panel(home_panel)
 
     # ── AVATAR WIDGET ─────────────────────────────────────────────────
@@ -561,8 +819,10 @@ def dashboard_view(page: ft.Page):
 
         # To-do
         refresh_todo_theme()
-        # Atnaujinti mini-widgetą po temos pakeitimo
         refresh_upcoming_widget()
+
+        #Grade calculator
+        refresh_grade_theme()
 
         # Kalendorius
         cal_refs = get_cal_refs()
