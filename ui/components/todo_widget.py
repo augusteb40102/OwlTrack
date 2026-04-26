@@ -1,6 +1,14 @@
 import flet as ft
 import ui.themes.themes as th
 from datetime import datetime, timedelta
+from database import (
+    create_task,
+    delete_task,
+    get_monthly_task_statistics,
+    list_user_tasks,
+    set_task_completed,
+    update_task,
+)
 
 RADIUS_LG = 20
 
@@ -15,12 +23,12 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
     def set_dashboard_widget(widget_fn):
         dashboard_widget_ref[0] = widget_fn
 
-    tasks = [
-        {"id": 1, "title": "Finish weekly report", "type": "Assignment", "due_date": "2026-04-10", "completed": True, "completed_at": "2026-04-08"},
-        {"id": 2, "title": "Exam preparation", "type": "Exam", "due_date": "2026-04-15", "completed": False, "completed_at": None},
-        {"id": 3, "title": "Team meeting", "type": "Appointment", "due_date": "2026-04-05", "completed": True, "completed_at": "2026-04-05"},
-        {"id": 4, "title": "Read chapter 4", "type": "Other", "due_date": "2026-04-12", "completed": True, "completed_at": "2026-04-10"},
-    ]
+    tasks = []
+
+    def sync_tasks():
+        nonlocal tasks
+        tasks = list_user_tasks(user_email) if user_email else []
+        return tasks
 
     WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     selected_month = [datetime.now().replace(day=1)]
@@ -43,23 +51,8 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         return ft.dropdown.Option(key=task_type, text=task_type,
             leading_icon=ft.Icon(ft.Icons.CIRCLE, color=get_type_color(task_type), size=10))
 
-    def auto_complete_overdue():
-        today = datetime.now().date()
-        changed = False
-        for task in tasks:
-            if not task["completed"]:
-                try:
-                    due = datetime.strptime(task["due_date"], "%Y-%m-%d").date()
-                    if due < today:
-                        task["completed"] = True
-                        task["completed_at"] = today.strftime("%Y-%m-%d")
-                        changed = True
-                except ValueError:
-                    pass
-        return changed
-
     def get_upcoming_tasks():
-        auto_complete_overdue()
+        sync_tasks()
         today = datetime.now().date()
         upcoming = []
         for task in tasks:
@@ -73,12 +66,16 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         return [t for _, t in upcoming]
 
     def toggle_task_done(task_id: int):
-        today = datetime.now().date()
-        for task in tasks:
-            if task["id"] == task_id and not task["completed"]:
-                task["completed"] = True
-                task["completed_at"] = today.strftime("%Y-%m-%d")
-                break
+        sync_tasks()
+        task = next((item for item in tasks if item["id"] == task_id), None)
+        if not task:
+            return
+
+        result = set_task_completed(task_id, user_email, not task["completed"])
+        if not result.get("success"):
+            return
+
+        sync_tasks()
         refresh_filter_ui()
         refresh_tasks_list()
         refresh_statistics_ui()
@@ -196,34 +193,36 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
 
     def compute_monthly_stats():
         anchor = selected_month[0]
-        today = datetime.now().date()
-        month_tasks = [(task, parse_date(task.get("due_date"))) for task in tasks
-                       if same_month(parse_date(task.get("due_date")), anchor)]
-        total = len(month_tasks)
-        completed = len([1 for t, _ in month_tasks if t.get("completed")])
-        progress = (completed / total) if total else 0.0
-        overdue = len([1 for t, d in month_tasks if d and not t.get("completed") and d < today])
-        upcoming = len([1 for t, d in month_tasks if d and not t.get("completed") and d >= today])
-        weekday_counts = [0] * 7
-        completed_days = set()
-        for task in tasks:
-            completed_at = parse_date(task.get("completed_at"))
-            if task.get("completed") and completed_at:
-                completed_days.add(completed_at)
-            if task.get("completed") and same_month(completed_at, anchor):
-                weekday_counts[completed_at.weekday()] += 1
-        max_count = max(weekday_counts) if weekday_counts else 0
-        if max_count > 0:
-            best_idx = weekday_counts.index(max_count)
-            most_productive = f"Most productive day: {WEEKDAY_LABELS[best_idx]} ({max_count} tasks)"
+        if not user_email:
+            return {
+                "total": 0,
+                "completed": 0,
+                "progress": 0.0,
+                "overdue": 0,
+                "upcoming": 0,
+                "weekday_counts": [0] * 7,
+                "most_productive": "Most productive day: No completed tasks this month",
+                "streak": 0,
+            }
+
+        stats = get_monthly_task_statistics(user_email, anchor.year, anchor.month)
+        weekday_counts = [item["tasks"] for item in stats.get("weekday_productivity", [])]
+        most_productive_day = stats.get("most_productive_day", {})
+        if most_productive_day.get("day"):
+            most_productive = f"Most productive day: {most_productive_day['day']} ({most_productive_day.get('tasks', 0)} tasks)"
         else:
             most_productive = "Most productive day: No completed tasks this month"
-        streak = 0
-        cursor = today
-        while cursor in completed_days:
-            streak += 1; cursor -= timedelta(days=1)
-        return {"total": total, "completed": completed, "progress": progress, "overdue": overdue,
-                "upcoming": upcoming, "weekday_counts": weekday_counts, "most_productive": most_productive, "streak": streak}
+
+        return {
+            "total": stats.get("totals", {}).get("all_tasks", 0),
+            "completed": stats.get("totals", {}).get("completed_tasks", 0),
+            "progress": stats.get("totals", {}).get("completion_percent", 0.0) / 100.0,
+            "overdue": stats.get("deadlines", {}).get("overdue_tasks", 0),
+            "upcoming": stats.get("deadlines", {}).get("upcoming_tasks", 0),
+            "weekday_counts": weekday_counts if len(weekday_counts) == 7 else [0] * 7,
+            "most_productive": most_productive,
+            "streak": stats.get("streak", {}).get("current_days", 0),
+        }
 
     def make_stat_card(label, value_control):
         return ft.Container(expand=True, bgcolor=c("SURFACE"), border=ft.border.all(1, c("BORDER")),
@@ -281,6 +280,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         most_productive_text.value = stats["most_productive"]
 
     def open_task_form(mode: str, task_id: int = None):
+        sync_tasks()
         form_error_text.visible = False
         form_error_text.value = ""
         if mode == "add":
@@ -311,13 +311,18 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
             except ValueError:
                 form_error_text.value = "Date format must be YYYY-MM-DD"; form_error_text.visible = True; page.update(); return
             if mode == "add":
-                new_id = max([t["id"] for t in tasks], default=0) + 1
-                tasks.append({"id": new_id, "title": title_value, "type": type_value, "due_date": due_value, "completed": False, "completed_at": None})
+                result = create_task(user_email, title_value, type_value, due_value)
             else:
-                for task in tasks:
-                    if task["id"] == task_id:
-                        task["title"] = title_value; task["type"] = type_value; task["due_date"] = due_value; break
+                result = update_task(task_id, user_email, title_value, type_value, due_value)
+
+            if not result.get("success"):
+                form_error_text.value = "Unable to save task"
+                form_error_text.visible = True
+                page.update()
+                return
+
             close_dialog(task_form_dialog)
+            sync_tasks()
             refresh_filter_ui(); refresh_tasks_list(); refresh_statistics_ui()
             if dashboard_widget_ref[0]: dashboard_widget_ref[0]()
             page.update()
@@ -351,6 +356,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
             return datetime.max.date()
 
     def refresh_tasks_list():
+        sync_tasks()
         rows = []
         current_filter = selected_filter[0]
         filtered_tasks = []
@@ -377,8 +383,9 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
                     visible=is_done, alignment=ft.Alignment(0, 0)),
                 alignment=ft.Alignment(0, 0),
                 animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
-                tooltip="Mark as done" if not is_done else "Completed",
-                **({"on_click": lambda e, tid=task["id"]: toggle_task_done(tid), "ink": True} if not is_done else {}),
+                tooltip="Mark as done" if not is_done else "Mark as not done",
+                on_click=lambda e, tid=task["id"]: toggle_task_done(tid),
+                ink=True,
             )
             task_row = ft.Container(
                 border=ft.border.all(1, c("BORDER")), border_radius=12, bgcolor=th.TEXT_ON_PRIMARY,
@@ -413,6 +420,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         open_task_form("edit", task_id)
 
     def delete_task_confirm(task_id: int):
+        sync_tasks()
         task = next((t for t in tasks if t["id"] == task_id), None)
         if not task: return
         delete_text.value = f"Are you sure you want to delete '{task['title']}'?"
@@ -428,9 +436,11 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         page.update()
 
     def confirm_delete(task_id: int):
-        nonlocal tasks
-        tasks = [task for task in tasks if task["id"] != task_id]
+        result = delete_task(task_id, user_email)
+        if not result.get("success"):
+            return
         close_dialog(delete_dialog)
+        sync_tasks()
         refresh_filter_ui(); refresh_tasks_list(); refresh_statistics_ui()
         if dashboard_widget_ref[0]: dashboard_widget_ref[0]()
         page.update()
@@ -439,6 +449,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         open_task_form("add")
 
     def get_filter_count(filter_type: str):
+        sync_tasks()
         if filter_type == "All": return len([t for t in tasks if not t["completed"]])
         elif filter_type == "Completed": return len([t for t in tasks if t["completed"]])
         else: return len([t for t in tasks if not t["completed"] and t["type"] == filter_type])
@@ -460,6 +471,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         )
 
     def refresh_filter_ui():
+        sync_tasks()
         filter_tabs = [build_filter_tab(ft_type) for ft_type in filter_types.keys()]
         filter_tabs.append(ft.Container(
             content=ft.Icon(ft.Icons.ADD, size=18, color=c("TEXT_ON_PRIMARY")),
@@ -525,6 +537,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         border=ft.border.all(2, c("BORDER")), padding=ft.padding.all(12),
     )
 
+    sync_tasks()
     refresh_tasks_list()
     refresh_filter_ui()
     refresh_statistics_ui()
@@ -560,6 +573,7 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         refs["todo_filter_area"].border = ft.border.all(2, c("BORDER"))
         refs["todo_filter_area"].bgcolor = th.TEXT_ON_PRIMARY
         refs["todo_back_btn"].gradient = grad()
+        sync_tasks()
         refresh_tasks_list()
         refresh_statistics_ui()
 

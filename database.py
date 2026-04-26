@@ -43,6 +43,12 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
+    def ensure_column(table: str, column: str, definition: str):
+        cursor.execute(f"PRAGMA table_info({table})")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        if column not in existing_columns:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,6 +102,21 @@ def create_tables():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_user_email ON tasks(user_email)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at)")
+
+    for column, definition in [
+        ("user_email", "TEXT NOT NULL DEFAULT ''"),
+        ("title", "TEXT NOT NULL DEFAULT ''"),
+        ("type", "TEXT NOT NULL DEFAULT 'Assignment'"),
+        ("due_date", "TEXT NOT NULL DEFAULT ''"),
+        ("completed", "INTEGER NOT NULL DEFAULT 0"),
+        ("completed_at", "TEXT DEFAULT NULL"),
+        ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            ensure_column("tasks", column, definition)
+        except Exception:
+            pass
 
     for column, definition in [
         ("avatar_src", "TEXT DEFAULT NULL"),
