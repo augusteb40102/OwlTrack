@@ -12,17 +12,17 @@ _SAMPLE_MODULES = [
         "name": "Data Bases",
         "ects": 6,
         "assessments": [
-            {"type": "Midterm 1",  "grade": 8.5},
-            {"type": "Midterm 2",  "grade": 9.0},
-            {"type": "Final Exam", "grade": 9.0},
+            {"type": "Midterm 1",  "grade": 8.5, "weight": 30},
+            {"type": "Midterm 2",  "grade": 9.0, "weight": 30},
+            {"type": "Final Exam", "grade": 9.0, "weight": 40},
         ],
     },
     {
         "name": "Mathematics",
         "ects": 9,
         "assessments": [
-            {"type": "Midterm",    "grade": 8.7},
-            {"type": "Final Exam", "grade": 7.5},
+            {"type": "Midterm",    "grade": 8.7, "weight": 40},
+            {"type": "Final Exam", "grade": 7.5, "weight": 60},
         ],
     },
 ]
@@ -31,10 +31,13 @@ SCHOLARSHIP_THRESHOLD = 8.5
 
 
 def _module_avg(module: dict) -> float | None:
-    grades = [a["grade"] for a in module["assessments"] if a["grade"] is not None]
-    if not grades:
+    assessments = [a for a in module["assessments"] if a.get("grade") is not None]
+    if not assessments:
         return None
-    return sum(grades) / len(grades)
+    total_w = sum(a.get("weight", 100) for a in assessments)
+    if not total_w:
+        return None
+    return sum(a["grade"] * a.get("weight", 100) for a in assessments) / total_w
 
 
 def _semester_avg(modules: list[dict]) -> float | None:
@@ -53,12 +56,20 @@ def _total_ects(modules: list[dict]) -> int:
     return sum(m["ects"] for m in modules)
 
 
+def _is_complete(module: dict) -> bool:
+    """Module is complete when total weight of graded assessments reaches 100%."""
+    weights = [a.get("weight", 0) for a in module["assessments"] if a.get("grade") is not None]
+    return bool(weights) and round(sum(weights)) >= 100
+
+
 def _score_at_total(module: dict) -> str:
     avg = _module_avg(module)
-    if avg is None:
-        return f"— / {module['ects']:.1f}"
-    score = (avg / 10) * module["ects"]
-    return f"{score:.2f} / {module['ects']:.1f}"
+    if not _is_complete(module) or avg is None:
+        return f"0 / {module['ects']:.0f}"
+    if avg >= 4.5:
+        return f"{module['ects']:.0f} / {module['ects']:.0f}"
+    else:
+        return f"0 / {module['ects']:.0f}"
 
 
 # ---------------------------------------------------------------------------
@@ -178,11 +189,11 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
     assessment_rows_col     = ft.Column(spacing=8)
     dialog_error_text       = ft.Text("", color="#E53935", size=12, visible=False)
 
-    def _make_row_widget(dd_value: str, grade_value: str) -> tuple:
+    def _make_row_widget(dd_value: str, grade_value: str, weight_value: str = "") -> tuple:
         dd = ft.Dropdown(
             options=[ft.dropdown.Option(t) for t in ASSESSMENT_TYPES],
             value=dd_value if dd_value in ASSESSMENT_TYPES else ASSESSMENT_TYPES[0],
-            width=200,
+            width=190,
             text_style=ft.TextStyle(size=12, color=c("TEXT_PRIMARY")),
             bgcolor=c("SURFACE"), border_color=c("BORDER"),
             focused_border_color=c("PRIMARY"),
@@ -190,14 +201,22 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             label_style=ft.TextStyle(color=c("TEXT_SECONDARY"), size=11),
         )
         tf = ft.TextField(
-            label="Grade", width=100, value=grade_value,
+            label="Grade (1–10)", width=95, value=grade_value,
             keyboard_type=ft.KeyboardType.NUMBER,
             text_style=ft.TextStyle(size=12, color=c("TEXT_PRIMARY")),
             label_style=ft.TextStyle(color=c("TEXT_SECONDARY"), size=11),
             bgcolor=c("SURFACE"), border_color=c("BORDER"),
             focused_border_color=c("PRIMARY"),
         )
-        entry = {"dd": dd, "tf": tf}
+        wf = ft.TextField(
+            label="Weight %", width=85, value=weight_value,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            text_style=ft.TextStyle(size=12, color=c("TEXT_PRIMARY")),
+            label_style=ft.TextStyle(color=c("TEXT_SECONDARY"), size=11),
+            bgcolor=c("SURFACE"), border_color=c("BORDER"),
+            focused_border_color=c("PRIMARY"),
+        )
+        entry = {"dd": dd, "tf": tf, "wf": wf}
 
         def remove_this(e, en=entry):
             if en in live_rows:
@@ -206,7 +225,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             page.update()
 
         row_widget = ft.Row(
-            [dd, tf,
+            [dd, tf, wf,
              ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
                            icon_size=18, icon_color="#E53935",
                            on_click=remove_this, tooltip="Remove")],
@@ -224,7 +243,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                 page.update()
             widgets.append(
                 ft.Row(
-                    [en["dd"], en["tf"],
+                    [en["dd"], en["tf"], en["wf"],
                      ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
                                    icon_size=18, icon_color="#E53935",
                                    on_click=remove_this, tooltip="Remove")],
@@ -243,12 +262,15 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         live_rows.clear()
         assessment_rows_col.controls = []
         for a in assessments:
-            grade_str = f"{a['grade']:.1f}" if a.get("grade") is not None else ""
-            rw, entry = _make_row_widget(a["type"], grade_str)
+            grade_str  = f"{a['grade']:.1f}" if a.get("grade") is not None else ""
+            weight_str = str(int(a["weight"])) if a.get("weight") is not None else ""
+            rw, entry = _make_row_widget(a["type"], grade_str, weight_str)
+            entry["wf"].on_change = lambda _: update_weight_total()
             live_rows.append(entry)
             assessment_rows_col.controls.append(rw)
         if not live_rows:
-            add_blank_row()
+            add_blank_row_with_update()
+        update_weight_total()
 
     def open_add_dialog(e):
         editing_index[0]          = None
@@ -297,9 +319,11 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         for entry in live_rows:
             dd = entry.get("dd")
             tf = entry.get("tf")
+            wf = entry.get("wf")
             if dd is None or tf is None:
                 continue
-            grade_str = (tf.value or "").strip()
+            grade_str  = (tf.value or "").strip()
+            weight_str = (wf.value if wf else "").strip()
             if grade_str:
                 try:
                     g = float(grade_str.replace(",", "."))
@@ -308,12 +332,37 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                         dialog_error_text.visible = True
                         page.update()
                         return
-                    assessments.append({"type": dd.value, "grade": g})
                 except ValueError:
                     dialog_error_text.value   = "All grades must be valid numbers"
                     dialog_error_text.visible = True
                     page.update()
                     return
+                try:
+                    w = float(weight_str.replace(",", ".")) if weight_str else None
+                    if w is not None and not (0 < w <= 100):
+                        dialog_error_text.value   = "Each weight must be between 1 and 100"
+                        dialog_error_text.visible = True
+                        page.update()
+                        return
+                except ValueError:
+                    dialog_error_text.value   = "Weight must be a valid number"
+                    dialog_error_text.visible = True
+                    page.update()
+                    return
+                assessments.append({"type": dd.value, "grade": g, "weight": w})
+
+        # Check total weight — allow < 100 (pending grades), block > 100
+        weights_set = [a["weight"] for a in assessments if a["weight"] is not None]
+        if weights_set:
+            total_w = sum(weights_set)
+            if total_w > 100.0 + 0.01:
+                dialog_error_text.value   = f"Total weight exceeds 100% ({total_w:.0f}%). Please fix."
+                dialog_error_text.visible = True
+                page.update()
+                return
+        else:
+            for a in assessments:
+                a["weight"] = round(100 / len(assessments), 4) if assessments else 100
 
         new_data = {"name": name, "ects": ects, "assessments": assessments}
         if editing_index[0] is None:
@@ -331,8 +380,46 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         style=ft.ButtonStyle(color=c("PRIMARY")),
     )
 
+    weight_total_text = ft.Text("Total weight: 0%", size=11, color=c("TEXT_SECONDARY"))
+
+    def update_weight_total():
+        total = 0.0
+        for en in live_rows:
+            wf = en.get("wf")
+            if wf:
+                try:
+                    total += float((wf.value or "0").replace(",", "."))
+                except ValueError:
+                    pass
+        if total > 100:
+            color = "#E53935"
+            label = f"Total weight: {total:.0f}% ⚠ over 100%"
+        elif round(total) == 100:
+            color = "#22c55e"
+            label = f"Total weight: {total:.0f}% ✓"
+        else:
+            color = "#F59E0B"
+            label = f"Total weight: {total:.0f}% (incomplete)"
+        weight_total_text.value = label
+        weight_total_text.color = color
+        page.update()
+
+    # Patch add_blank_row to also trigger weight update
+    _orig_add_blank = add_blank_row
+
+    def add_blank_row_with_update(e=None):
+        rw, entry = _make_row_widget(ASSESSMENT_TYPES[0], "")
+        # attach on_change to wf
+        entry["wf"].on_change = lambda _: update_weight_total()
+        live_rows.append(entry)
+        assessment_rows_col.controls.append(rw)
+        update_weight_total()
+        page.update()
+
+    add_assessment_btn.on_click = add_blank_row_with_update
+
     dialog_box = ft.Container(
-        width=520,
+        width=540,
         border_radius=16,
         bgcolor=ft.Colors.WHITE,
         border=ft.border.all(1, c("BORDER")),
@@ -346,7 +433,12 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                 ft.Row([new_name_field, new_ects_field], spacing=12,
                        vertical_alignment=ft.CrossAxisAlignment.END),
                 ft.Container(height=14),
-                ft.Text("Assessments", size=13, weight="w600", color=c("TEXT_SECONDARY")),
+                ft.Row(
+                    [ft.Text("Assessments", size=13, weight="w600", color=c("TEXT_SECONDARY")),
+                     ft.Container(expand=True),
+                     weight_total_text],
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
                 ft.Container(height=8),
                 assessment_rows_col,
                 ft.Container(height=4),
@@ -442,22 +534,25 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             score_str = _score_at_total(m)
 
             a_lines = ft.Column(
-                [ft.Text(f"{a['type']}: {a['grade']:.1f}" if a["grade"] is not None
-                         else a["type"],
-                         size=12, color=c("TEXT_PRIMARY"))
+                [ft.Text(
+                    f"{a['type']}: {a['grade']:.1f}" +
+                    (f"  ({int(a['weight'])}%)" if a.get("weight") is not None else "")
+                    if a.get("grade") is not None else a["type"],
+                    size=12, color=c("TEXT_PRIMARY"))
                  for a in m["assessments"]]
                 or [ft.Text("—", size=12, color=c("TEXT_SECONDARY"))],
                 spacing=2,
             )
 
+            complete = _is_complete(m)
             status_dot = ft.Container(
                 width=10, height=10, border_radius=5,
                 bgcolor="#BDBDBD" if avg_m is None else
-                        ("#22c55e" if avg_m >= SCHOLARSHIP_THRESHOLD else c("PRIMARY")),
+                        ("#22c55e" if complete else c("PRIMARY")),
             )
             status_text = ft.Text(
                 "—" if avg_m is None else
-                ("Complete" if len(m["assessments"]) >= 3 else "In Progress"),
+                ("Complete" if complete else "In Progress"),
                 size=12, color=c("TEXT_SECONDARY"),
             )
 
