@@ -1,4 +1,5 @@
 import flet as ft
+
 RADIUS_LG = 20
 
 ASSESSMENT_TYPES = [
@@ -11,17 +12,17 @@ _SAMPLE_MODULES = [
         "name": "Data Bases",
         "ects": 6,
         "assessments": [
-            {"type": "Midterm 1",   "grade": 8.5},
-            {"type": "Midterm 2",   "grade": 9.0},
-            {"type": "Final Exam",  "grade": 9.0},
+            {"type": "Midterm 1",  "grade": 8.5},
+            {"type": "Midterm 2",  "grade": 9.0},
+            {"type": "Final Exam", "grade": 9.0},
         ],
     },
     {
         "name": "Mathematics",
         "ects": 9,
         "assessments": [
-            {"type": "Midterm",     "grade": 8.7},
-            {"type": "Final Exam",  "grade": 7.5},
+            {"type": "Midterm",    "grade": 8.7},
+            {"type": "Final Exam", "grade": 7.5},
         ],
     },
 ]
@@ -41,7 +42,7 @@ def _semester_avg(modules: list[dict]) -> float | None:
     for m in modules:
         avg = _module_avg(m)
         if avg is not None:
-            weighted  += avg * m["ects"]
+            weighted   += avg * m["ects"]
             total_ects += m["ects"]
     if not total_ects:
         return None
@@ -53,7 +54,6 @@ def _total_ects(modules: list[dict]) -> int:
 
 
 def _score_at_total(module: dict) -> str:
-    """Weighted ECTS contribution: (avg/10) * ects  →  shown as x.xx / ects"""
     avg = _module_avg(module)
     if avg is None:
         return f"— / {module['ects']:.1f}"
@@ -68,13 +68,12 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         m["assessments"] = list(m["assessments"])
 
     home_panel_ref: list = [None]
+    editing_index: list  = [None]   # None = add mode, int = edit mode
 
     # ── shared display refs ──────────────────────────────────────────────
-    dash_avg_text  = ft.Text("—",  size=26, weight="bold", color=c("TEXT_PRIMARY"))
-    dash_ects_text = ft.Text("0",  size=13, weight="w500", color=c("TEXT_SECONDARY"))
+    dash_avg_text  = ft.Text("—", size=26, weight="bold", color=c("TEXT_PRIMARY"))
+    dash_ects_text = ft.Text("0", size=13, weight="w500", color=c("TEXT_SECONDARY"))
     dash_rows_col  = ft.Column(spacing=4)
-
-    # goal circle value
     goal_value: list[float] = [8.5]
 
     # ── GOAL RING ────────────────────────────────────────────────────────
@@ -82,8 +81,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
 
     def build_goal_ring(current: float | None, goal: float) -> ft.Stack:
         pct = min(max((current or 0) / 10, 0), 1)
-
-        ring = ft.Stack(
+        return ft.Stack(
             [
                 ft.Container(
                     width=RING_SIZE, height=RING_SIZE,
@@ -119,23 +117,19 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             ],
             width=RING_SIZE, height=RING_SIZE,
         )
-        return ring
 
     goal_ring_slot = ft.Container(
         width=RING_SIZE, height=RING_SIZE,
         content=build_goal_ring(None, goal_value[0]),
     )
 
-    # ── render compact widget ────────────────────────────────────────────
+    # ── render compact ───────────────────────────────────────────────────
     def render_dash():
         avg  = _semester_avg(modules)
         ects = _total_ects(modules)
-
-        dash_avg_text.value  = f"{avg:.1f} / 10" if avg is not None else "— / 10"
-        dash_ects_text.value = f"{ects} ECTS total"
-
+        dash_avg_text.value    = f"{avg:.1f} / 10" if avg is not None else "— / 10"
+        dash_ects_text.value   = f"{ects} ECTS total"
         goal_ring_slot.content = build_goal_ring(avg, goal_value[0])
-
         rows = []
         for m in modules:
             avg_m = _module_avg(m)
@@ -144,11 +138,10 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                     [
                         ft.Text(m["name"], size=11, color=c("TEXT_PRIMARY"),
                                 expand=True, overflow=ft.TextOverflow.ELLIPSIS, max_lines=1),
-                        ft.Text(f"{avg_m:.1f}" if avg_m else "—",
+                        ft.Text(f"{avg_m:.1f}" if avg_m is not None else "—",
                                 size=11, weight="bold", color=c("TEXT_PRIMARY"), width=28),
-                        ft.Text(f"{m['ects']} cr", size=10,
-                                color=c("TEXT_SECONDARY"), width=34,
-                                text_align=ft.TextAlign.RIGHT),
+                        ft.Text(f"{m['ects']} cr", size=10, color=c("TEXT_SECONDARY"),
+                                width=34, text_align=ft.TextAlign.RIGHT),
                     ],
                     spacing=4,
                 )
@@ -158,9 +151,12 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         dash_rows_col.controls = rows
 
     # ────────────────────────────────────────────────────────────────────
-    # ADD MODULE DIALOG
+    # ADD / EDIT DIALOG
     # ────────────────────────────────────────────────────────────────────
-    dialog_visible = [False]
+    dialog_title_text = ft.Text("Add New Module", size=18, weight="bold",
+                                 color=c("TEXT_PRIMARY"))
+    save_btn_text     = ft.Text("Save Module", size=13, color=c("TEXT_ON_PRIMARY"),
+                                 weight="w600")
 
     new_name_field = ft.TextField(
         label="Module Name", expand=True,
@@ -178,14 +174,15 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         focused_border_color=c("PRIMARY"),
     )
 
-    new_assessments: list[dict] = []   # {"type": str, "grade": float|None, "dd": Dropdown, "tf": TextField}
-    assessment_rows_col = ft.Column(spacing=8)
-    dialog_error_text   = ft.Text("", color="#E53935", size=12, visible=False)
+    live_rows: list[dict]   = []
+    assessment_rows_col     = ft.Column(spacing=8)
+    dialog_error_text       = ft.Text("", color="#E53935", size=12, visible=False)
 
-    def build_assessment_row(idx: int):
+    def _make_row_widget(dd_value: str, grade_value: str) -> tuple:
         dd = ft.Dropdown(
             options=[ft.dropdown.Option(t) for t in ASSESSMENT_TYPES],
-            value=ASSESSMENT_TYPES[0], width=200,
+            value=dd_value if dd_value in ASSESSMENT_TYPES else ASSESSMENT_TYPES[0],
+            width=200,
             text_style=ft.TextStyle(size=12, color=c("TEXT_PRIMARY")),
             bgcolor=c("SURFACE"), border_color=c("BORDER"),
             focused_border_color=c("PRIMARY"),
@@ -193,7 +190,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             label_style=ft.TextStyle(color=c("TEXT_SECONDARY"), size=11),
         )
         tf = ft.TextField(
-            label="Grade", width=100, value="",
+            label="Grade", width=100, value=grade_value,
             keyboard_type=ft.KeyboardType.NUMBER,
             text_style=ft.TextStyle(size=12, color=c("TEXT_PRIMARY")),
             label_style=ft.TextStyle(color=c("TEXT_SECONDARY"), size=11),
@@ -201,42 +198,78 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             focused_border_color=c("PRIMARY"),
         )
         entry = {"dd": dd, "tf": tf}
-        new_assessments.append(entry)
 
-        def remove_row(e, i=idx):
-            new_assessments.pop(i)
-            rebuild_assessment_rows()
+        def remove_this(e, en=entry):
+            if en in live_rows:
+                live_rows.remove(en)
+            _rebuild_row_widgets()
             page.update()
 
-        row = ft.Row(
+        row_widget = ft.Row(
             [dd, tf,
              ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
                            icon_size=18, icon_color="#E53935",
-                           on_click=remove_row, tooltip="Remove")],
+                           on_click=remove_this, tooltip="Remove")],
             spacing=8, vertical_alignment=ft.CrossAxisAlignment.END,
         )
-        return row
+        return row_widget, entry
 
-    def rebuild_assessment_rows():
-        assessment_rows_col.controls = [
-            build_assessment_row(i) for i in range(len(new_assessments))
-        ]
+    def _rebuild_row_widgets():
+        widgets = []
+        for en in live_rows:
+            def remove_this(e, entry=en):
+                if entry in live_rows:
+                    live_rows.remove(entry)
+                _rebuild_row_widgets()
+                page.update()
+            widgets.append(
+                ft.Row(
+                    [en["dd"], en["tf"],
+                     ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                                   icon_size=18, icon_color="#E53935",
+                                   on_click=remove_this, tooltip="Remove")],
+                    spacing=8, vertical_alignment=ft.CrossAxisAlignment.END,
+                )
+            )
+        assessment_rows_col.controls = widgets
 
-    def add_assessment_row(e):
-        new_assessments.append({"dd": None, "tf": None})
-        new_assessments.pop()          # will be created fresh
-        assessment_rows_col.controls.append(build_assessment_row(len(new_assessments) - 1))
+    def add_blank_row(e=None):
+        rw, entry = _make_row_widget(ASSESSMENT_TYPES[0], "")
+        live_rows.append(entry)
+        assessment_rows_col.controls.append(rw)
         page.update()
 
-    def open_add_dialog(e):
-        new_name_field.value  = ""
-        new_ects_field.value  = "6"
-        new_assessments.clear()
-        dialog_error_text.visible = False
-        # seed one empty assessment row
+    def _seed_rows(assessments: list[dict]):
+        live_rows.clear()
         assessment_rows_col.controls = []
-        new_assessments.clear()
-        assessment_rows_col.controls.append(build_assessment_row(0))
+        for a in assessments:
+            grade_str = f"{a['grade']:.1f}" if a.get("grade") is not None else ""
+            rw, entry = _make_row_widget(a["type"], grade_str)
+            live_rows.append(entry)
+            assessment_rows_col.controls.append(rw)
+        if not live_rows:
+            add_blank_row()
+
+    def open_add_dialog(e):
+        editing_index[0]          = None
+        dialog_title_text.value   = "Add New Module"
+        save_btn_text.value       = "Save Module"
+        new_name_field.value      = ""
+        new_ects_field.value      = "6"
+        dialog_error_text.visible = False
+        _seed_rows([])
+        dialog_overlay.visible = True
+        page.update()
+
+    def open_edit_dialog(idx: int):
+        editing_index[0]          = idx
+        m                         = modules[idx]
+        dialog_title_text.value   = "Edit Module"
+        save_btn_text.value       = "Save Changes"
+        new_name_field.value      = m["name"]
+        new_ects_field.value      = str(int(m["ects"]) if m["ects"] == int(m["ects"]) else m["ects"])
+        dialog_error_text.visible = False
+        _seed_rows(m["assessments"])
         dialog_overlay.visible = True
         page.update()
 
@@ -261,9 +294,9 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             return
 
         assessments = []
-        for row_data in new_assessments:
-            dd = row_data.get("dd")
-            tf = row_data.get("tf")
+        for entry in live_rows:
+            dd = entry.get("dd")
+            tf = entry.get("tf")
             if dd is None or tf is None:
                 continue
             grade_str = (tf.value or "").strip()
@@ -282,14 +315,19 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                     page.update()
                     return
 
-        modules.append({"name": name, "ects": ects, "assessments": assessments})
+        new_data = {"name": name, "ects": ects, "assessments": assessments}
+        if editing_index[0] is None:
+            modules.append(new_data)
+        else:
+            modules[editing_index[0]] = new_data
+
         close_dialog()
         refresh_all()
 
     # Dialog layout
     add_assessment_btn = ft.TextButton(
         "+ Add Assessment",
-        on_click=add_assessment_row,
+        on_click=add_blank_row,
         style=ft.ButtonStyle(color=c("PRIMARY")),
     )
 
@@ -298,11 +336,12 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         border_radius=16,
         bgcolor=ft.Colors.WHITE,
         border=ft.border.all(1, c("BORDER")),
-        shadow=ft.BoxShadow(blur_radius=32, color=ft.Colors.with_opacity(0.18, ft.Colors.BLACK)),
+        shadow=ft.BoxShadow(blur_radius=32,
+                            color=ft.Colors.with_opacity(0.18, ft.Colors.BLACK)),
         padding=ft.padding.all(28),
         content=ft.Column(
             [
-                ft.Text("Add New Module", size=18, weight="bold", color=c("TEXT_PRIMARY")),
+                dialog_title_text,
                 ft.Container(height=16),
                 ft.Row([new_name_field, new_ects_field], spacing=12,
                        vertical_alignment=ft.CrossAxisAlignment.END),
@@ -318,8 +357,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                 ft.Row(
                     [
                         ft.Container(
-                            content=ft.Text("Save Module", size=13,
-                                            color=c("TEXT_ON_PRIMARY"), weight="w600"),
+                            content=save_btn_text,
                             on_click=save_module, ink=True, border_radius=8,
                             padding=ft.padding.symmetric(horizontal=24, vertical=10),
                             gradient=grad(), alignment=ft.Alignment(0, 0),
@@ -349,17 +387,16 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
     # ────────────────────────────────────────────────────────────────────
     # DETAIL PANEL
     # ────────────────────────────────────────────────────────────────────
-    det_avg_text    = ft.Text("—", size=30, weight="bold", color=c("TEXT_PRIMARY"))
-    det_ects_text   = ft.Text("0 ECTS", size=22, weight="bold", color=c("TEXT_PRIMARY"))
-    det_schol_text  = ft.Text("Eligible for Scholarship", size=13,
-                               weight="w500", color="#22c55e")
-    det_schol_icon  = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
-    det_table_col   = ft.Column(spacing=0)
+    det_avg_text   = ft.Text("—",      size=30, weight="bold", color=c("TEXT_PRIMARY"))
+    det_ects_text  = ft.Text("0 ECTS", size=22, weight="bold", color=c("TEXT_PRIMARY"))
+    det_schol_text = ft.Text("Eligible for Scholarship", size=13,
+                              weight="w500", color="#22c55e")
+    det_schol_icon = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
+    det_table_col  = ft.Column(spacing=0)
 
     def render_detail():
         avg  = _semester_avg(modules)
         ects = _total_ects(modules)
-
         det_avg_text.value  = f"{avg:.1f} / 10" if avg is not None else "— / 10"
         det_ects_text.value = f"{ects} ECTS"
 
@@ -375,12 +412,10 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
             det_schol_icon.name  = ft.Icons.CANCEL
             det_schol_icon.color = "#E53935"
 
-        # Table header
         def hdr(label, w=None, expand=False):
             return ft.Container(
                 width=w, expand=expand,
-                content=ft.Text(label, size=11, weight="w600",
-                                color=c("TEXT_SECONDARY")),
+                content=ft.Text(label, size=11, weight="w600", color=c("TEXT_SECONDARY")),
             )
 
         header = ft.Container(
@@ -394,7 +429,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                  hdr("Module Average", w=120),
                  hdr("Score at total", w=110),
                  hdr("Status", w=100),
-                 ft.Container(width=36)],
+                 ft.Container(width=76)],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
@@ -402,21 +437,20 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
 
         rows = [header]
         for i, m in enumerate(modules):
-            avg_m = _module_avg(m)
+            avg_m     = _module_avg(m)
             avg_str   = f"{avg_m:.1f} / 10" if avg_m is not None else "—"
             score_str = _score_at_total(m)
 
-            # assessments list
             a_lines = ft.Column(
-                [ft.Text(f"{a['type']}: {a['grade']:.1f}" if a['grade'] is not None
-                         else a['type'],
+                [ft.Text(f"{a['type']}: {a['grade']:.1f}" if a["grade"] is not None
+                         else a["type"],
                          size=12, color=c("TEXT_PRIMARY"))
                  for a in m["assessments"]]
                 or [ft.Text("—", size=12, color=c("TEXT_SECONDARY"))],
                 spacing=2,
             )
 
-            status_dot  = ft.Container(
+            status_dot = ft.Container(
                 width=10, height=10, border_radius=5,
                 bgcolor="#BDBDBD" if avg_m is None else
                         ("#22c55e" if avg_m >= SCHOLARSHIP_THRESHOLD else c("PRIMARY")),
@@ -441,12 +475,25 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                                 color=c("TEXT_PRIMARY"), width=120),
                         ft.Text(score_str, size=12, color=c("TEXT_SECONDARY"), width=110),
                         ft.Row([status_dot, status_text], spacing=6, width=100),
-                        ft.IconButton(
-                            icon=ft.Icons.DELETE_OUTLINE,
-                            icon_size=16, icon_color=c("TEXT_SECONDARY"),
-                            width=36, height=36,
-                            on_click=lambda e, ii=i: remove_module(ii),
-                            tooltip="Remove",
+                        # Edit + Delete buttons
+                        ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.EDIT_OUTLINED,
+                                    icon_size=16, icon_color=c("PRIMARY"),
+                                    width=36, height=36,
+                                    on_click=lambda e, ii=i: open_edit_dialog(ii),
+                                    tooltip="Edit",
+                                ),
+                                ft.IconButton(
+                                    icon=ft.Icons.DELETE_OUTLINE,
+                                    icon_size=16, icon_color=c("TEXT_SECONDARY"),
+                                    width=36, height=36,
+                                    on_click=lambda e, ii=i: remove_module(ii),
+                                    tooltip="Remove",
+                                ),
+                            ],
+                            spacing=0,
                         ),
                     ],
                     spacing=8,
@@ -478,7 +525,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         render_detail()
         page.update()
 
-    # Detail panel layout
+    # ── Detail panel layout ──────────────────────────────────────────────
     detail_header = ft.Container(
         padding=ft.padding.symmetric(horizontal=20, vertical=14),
         gradient=grad(),
@@ -509,10 +556,8 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         gradient=grad(), alignment=ft.Alignment(0, 0),
     )
 
-    # Summary cards row
     avg_card = ft.Container(
-        expand=True,
-        border_radius=14,
+        expand=True, border_radius=14,
         bgcolor=ft.Colors.WHITE,
         border=ft.border.all(1, c("BORDER")),
         padding=ft.padding.symmetric(horizontal=18, vertical=14),
@@ -521,8 +566,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                 ft.Container(
                     width=46, height=46, border_radius=23,
                     border=ft.border.all(3, c("PRIMARY")),
-                    content=ft.Icon(ft.Icons.SCHOOL_OUTLINED,
-                                    size=22, color=c("PRIMARY")),
+                    content=ft.Icon(ft.Icons.SCHOOL_OUTLINED, size=22, color=c("PRIMARY")),
                     alignment=ft.Alignment(0, 0),
                 ),
                 ft.Container(width=12),
@@ -538,8 +582,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
     )
 
     ects_card = ft.Container(
-        expand=True,
-        border_radius=14,
+        expand=True, border_radius=14,
         bgcolor=ft.Colors.WHITE,
         border=ft.border.all(1, c("BORDER")),
         padding=ft.padding.symmetric(horizontal=18, vertical=14),
@@ -548,8 +591,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                 ft.Container(
                     width=46, height=46, border_radius=23,
                     border=ft.border.all(3, c("PRIMARY")),
-                    content=ft.Icon(ft.Icons.LAYERS_OUTLINED,
-                                    size=22, color=c("PRIMARY")),
+                    content=ft.Icon(ft.Icons.LAYERS_OUTLINED, size=22, color=c("PRIMARY")),
                     alignment=ft.Alignment(0, 0),
                 ),
                 ft.Container(width=12),
@@ -565,8 +607,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
     )
 
     schol_card = ft.Container(
-        width=220,
-        border_radius=14,
+        width=220, border_radius=14,
         bgcolor=ft.Colors.with_opacity(0.08, "#22c55e"),
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, "#22c55e")),
         padding=ft.padding.symmetric(horizontal=18, vertical=14),
@@ -598,7 +639,8 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
                             padding=ft.padding.all(20),
                             content=ft.Column(
                                 [
-                                    ft.Row([add_module_btn], alignment=ft.MainAxisAlignment.START),
+                                    ft.Row([add_module_btn],
+                                           alignment=ft.MainAxisAlignment.START),
                                     ft.Container(height=16),
                                     ft.Row([avg_card, ects_card, schol_card], spacing=12),
                                     ft.Container(height=20),
@@ -651,34 +693,28 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         ink=True,
         content=ft.Column(
             [
-                # Header
                 ft.Row(
                     [
-                        ft.Icon(ft.Icons.SCHOOL_OUTLINED, size=14,
-                                color=c("TEXT_SECONDARY")),
+                        ft.Icon(ft.Icons.SCHOOL_OUTLINED, size=14, color=c("TEXT_SECONDARY")),
                         ft.Text("Grade Calculator", size=13, weight="bold",
                                 color=c("TEXT_PRIMARY"), expand=True),
-                        ft.Icon(ft.Icons.ARROW_FORWARD_IOS, size=12,
-                                color=c("TEXT_SECONDARY")),
+                        ft.Icon(ft.Icons.ARROW_FORWARD_IOS, size=12, color=c("TEXT_SECONDARY")),
                     ],
                     spacing=6,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
                 ft.Container(height=10),
-                # Module rows
                 ft.Container(
                     expand=True,
                     content=ft.Column(
                         [dash_rows_col],
                         scroll=ft.ScrollMode.AUTO,
-                        expand=True,
-                        spacing=0,
+                        expand=True, spacing=0,
                     ),
                 ),
                 ft.Container(height=8),
                 ft.Divider(height=1, color=c("BORDER")),
                 ft.Container(height=10),
-                # Average + goal ring
                 ft.Row(
                     [
                         ft.Column(
@@ -707,21 +743,18 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
         compact_widget.bgcolor = ft.Colors.WHITE
         dash_avg_text.color    = c("TEXT_PRIMARY")
         dash_ects_text.color   = c("TEXT_SECONDARY")
-
-        det_avg_text.color   = c("TEXT_PRIMARY")
-        det_ects_text.color  = c("TEXT_PRIMARY")
-        detail_header.gradient = grad()
+        det_avg_text.color     = c("TEXT_PRIMARY")
+        det_ects_text.color    = c("TEXT_PRIMARY")
+        detail_header.gradient  = grad()
         add_module_btn.gradient = grad()
-        avg_card.border = ft.border.all(1, c("BORDER"))
+        avg_card.border  = ft.border.all(1, c("BORDER"))
         ects_card.border = ft.border.all(1, c("BORDER"))
-
         for field in [new_name_field, new_ects_field]:
             field.bgcolor              = c("SURFACE")
             field.border_color         = c("BORDER")
             field.focused_border_color = c("PRIMARY")
             field.text_style           = ft.TextStyle(color=c("TEXT_PRIMARY"))
             field.label_style          = ft.TextStyle(color=c("TEXT_SECONDARY"))
-
         render_dash()
         render_detail()
 
