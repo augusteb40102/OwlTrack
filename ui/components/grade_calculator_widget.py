@@ -1,4 +1,5 @@
 import flet as ft
+from database import list_modules, create_module, update_module, delete_module
 
 RADIUS_LG = 20
 
@@ -73,10 +74,24 @@ def _score_at_total(module: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-def build_grade_calculator(page: ft.Page, c, grad, main_panel):
-    modules: list[dict] = [dict(m) for m in _SAMPLE_MODULES]
-    for m in modules:
-        m["assessments"] = list(m["assessments"])
+def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str = ""):
+    # Load modules from DB for the given user_email. Fallback to sample when no user.
+    modules: list[dict] = []
+    def load_modules():
+        modules.clear()
+        if user_email:
+            mods = list_modules(user_email)
+            for m in mods:
+                # Ensure assessments list is mutable
+                m["assessments"] = list(m.get("assessments") or [])
+                modules.append(m)
+        else:
+            for m in _SAMPLE_MODULES:
+                nm = dict(m)
+                nm["assessments"] = list(nm["assessments"]) if nm.get("assessments") else []
+                modules.append(nm)
+
+    load_modules()
 
     home_panel_ref: list = [None]
     editing_index: list  = [None]   # None = add mode, int = edit mode
@@ -366,9 +381,32 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
 
         new_data = {"name": name, "ects": ects, "assessments": assessments}
         if editing_index[0] is None:
-            modules.append(new_data)
+            # create in DB
+            if user_email:
+                res = create_module(user_email, name, ects, assessments)
+                if res.get("success"):
+                    new_data["id"] = res.get("module_id")
+                    modules.append(new_data)
+                else:
+                    dialog_error_text.value = f"Unable to save module: {res.get('error') or 'unknown'}"
+                    dialog_error_text.visible = True
+                    page.update()
+                    return
+            else:
+                # local-only
+                modules.append(new_data)
         else:
-            modules[editing_index[0]] = new_data
+            if user_email and modules[editing_index[0]].get("id"):
+                module_id = modules[editing_index[0]]["id"]
+                res = update_module(module_id, user_email, name, ects, assessments)
+                if not res.get("success"):
+                    dialog_error_text.value = f"Unable to update module: {res.get('error') or 'unknown'}"
+                    dialog_error_text.visible = True
+                    page.update()
+                    return
+                modules[editing_index[0]] = {**modules[editing_index[0]], **new_data}
+            else:
+                modules[editing_index[0]] = new_data
 
         close_dialog()
         refresh_all()
@@ -612,6 +650,9 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel):
 
     def remove_module(idx: int):
         if 0 <= idx < len(modules):
+            mod = modules[idx]
+            if user_email and mod.get("id"):
+                delete_module(mod.get("id"), user_email)
             modules.pop(idx)
             refresh_all()
 

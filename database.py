@@ -37,6 +37,10 @@ if not os.path.exists(DB_PATH) and os.path.exists(LEGACY_DB_PATH):
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+    except Exception:
+        pass
     return conn
 
 def create_tables():
@@ -130,6 +134,35 @@ def create_tables():
     conn.commit()
     conn.close()
     print("Duomenų bazė paruošta.")
+
+    # Ensure modules/assessments tables exist
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS modules (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email  TEXT NOT NULL,
+            name        TEXT NOT NULL,
+            ects        REAL NOT NULL DEFAULT 0,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_modules_user_email ON modules(user_email)")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS assessments (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            module_id  INTEGER NOT NULL,
+            type       TEXT,
+            grade      REAL,
+            weight     REAL,
+            FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_assessments_module_id ON assessments(module_id)")
+    conn.commit()
+    conn.close()
 
 def register_user(name: str, email: str, password: str) -> dict:
     conn = get_connection()
@@ -246,6 +279,112 @@ def change_user_password(email: str, old_password: str, new_password: str) -> di
     except Exception:
         conn.rollback()
         return {"success": False, "error": "Unable to update password"}
+    finally:
+        conn.close()
+
+
+def list_modules(user_email: str) -> list[dict]:
+    """Grąžina vartotojo modulius su jų įvertinimais."""
+    if not user_email:
+        return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, name, ects
+        FROM modules
+        WHERE user_email = ?
+        ORDER BY id ASC
+        """,
+        (user_email,)
+    )
+    rows = cursor.fetchall()
+    modules = []
+    for row in rows:
+        cursor.execute(
+            "SELECT type, grade, weight FROM assessments WHERE module_id = ? ORDER BY id ASC",
+            (row["id"],),
+        )
+        assess_rows = cursor.fetchall()
+        assessments = [
+            {"type": a["type"], "grade": (a["grade"] if a["grade"] is not None else None), "weight": (a["weight"] if a["weight"] is not None else None)}
+            for a in assess_rows
+        ]
+        modules.append({"id": row["id"], "name": row["name"], "ects": row["ects"], "assessments": assessments})
+    conn.close()
+    return modules
+
+
+def create_module(user_email: str, name: str, ects: float, assessments: list[dict]) -> dict:
+    if not user_email:
+        return {"success": False, "error": "missing_user_email"}
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("BEGIN")
+        cursor.execute(
+            "INSERT INTO modules (user_email, name, ects) VALUES (?, ?, ?)",
+            (user_email, name, ects),
+        )
+        module_id = cursor.lastrowid
+        for a in assessments:
+            cursor.execute(
+                "INSERT INTO assessments (module_id, type, grade, weight) VALUES (?, ?, ?, ?)",
+                (module_id, a.get("type"), a.get("grade"), a.get("weight")),
+            )
+        conn.commit()
+        return {"success": True, "module_id": module_id}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def update_module(module_id: int, user_email: str, name: str, ects: float, assessments: list[dict]) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("BEGIN")
+        # Verify ownership
+        cursor.execute("SELECT user_email FROM modules WHERE id = ?", (module_id,))
+        row = cursor.fetchone()
+        if not row or row["user_email"] != user_email:
+            conn.rollback()
+            return {"success": False, "error": "not_allowed"}
+        cursor.execute(
+            "UPDATE modules SET name = ?, ects = ? WHERE id = ?",
+            (name, ects, module_id),
+        )
+        # Replace assessments: delete old, insert new
+        cursor.execute("DELETE FROM assessments WHERE module_id = ?", (module_id,))
+        for a in assessments:
+            cursor.execute(
+                "INSERT INTO assessments (module_id, type, grade, weight) VALUES (?, ?, ?, ?)",
+                (module_id, a.get("type"), a.get("grade"), a.get("weight")),
+            )
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def delete_module(module_id: int, user_email: str) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM modules WHERE id = ? AND user_email = ?",
+            (module_id, user_email),
+        )
+        conn.commit()
+        return {"success": cursor.rowcount > 0}
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": str(e)}
     finally:
         conn.close()
 

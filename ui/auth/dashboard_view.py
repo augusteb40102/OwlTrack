@@ -541,7 +541,7 @@ def dashboard_view(page: ft.Page):
     gc_detail_panel,
     refresh_grade_theme,
     set_gc_home_panel,
-) = build_grade_calculator(page, c, grad, main_panel)
+) = build_grade_calculator(page, c, grad, main_panel, user_email)
 
     # Pradinis render
     gc_render_dash()
