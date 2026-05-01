@@ -28,7 +28,7 @@ _SAMPLE_MODULES = [
     },
 ]
 
-SCHOLARSHIP_THRESHOLD = 8.5
+SCHOLARSHIP_THRESHOLD = 8.0
 
 
 def _module_avg(module: dict) -> float | None:
@@ -41,16 +41,22 @@ def _module_avg(module: dict) -> float | None:
     return sum(a["grade"] * a.get("weight", 100) for a in assessments) / total_w
 
 
+def _module_score(module: dict, total_ects: float) -> float | None:
+    """Calculate module contribution to semester average.
+
+    Module score = module average * (module credits / total credits).
+    """
+    avg = _module_avg(module)
+    if avg is None or not total_ects:
+        return None
+    return avg * module["ects"] / total_ects
+
+
 def _semester_avg(modules: list[dict]) -> float | None:
-    weighted, total_ects = 0.0, 0
-    for m in modules:
-        avg = _module_avg(m)
-        if avg is not None:
-            weighted   += avg * m["ects"]
-            total_ects += m["ects"]
+    total_ects = _total_ects(modules)
     if not total_ects:
         return None
-    return weighted / total_ects
+    return sum((_module_score(m, total_ects) or 0.0) for m in modules)
 
 
 def _total_ects(modules: list[dict]) -> int:
@@ -63,16 +69,6 @@ def _is_complete(module: dict) -> bool:
     return bool(weights) and round(sum(weights)) >= 100
 
 
-def _score_at_total(module: dict) -> str:
-    avg = _module_avg(module)
-    if not _is_complete(module) or avg is None:
-        return f"0 / {module['ects']:.0f}"
-    if avg >= 4.5:
-        return f"{module['ects']:.0f} / {module['ects']:.0f}"
-    else:
-        return f"0 / {module['ects']:.0f}"
-
-
 # ---------------------------------------------------------------------------
 def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str = ""):
     # Load modules from DB for the given user_email. Fallback to sample when no user.
@@ -82,7 +78,6 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         if user_email:
             mods = list_modules(user_email)
             for m in mods:
-                # Ensure assessments list is mutable
                 m["assessments"] = list(m.get("assessments") or [])
                 modules.append(m)
         else:
@@ -517,12 +512,12 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     # ────────────────────────────────────────────────────────────────────
     # DETAIL PANEL
     # ────────────────────────────────────────────────────────────────────
-    det_avg_text   = ft.Text("—",      size=30, weight="bold", color=c("TEXT_PRIMARY"))
-    det_ects_text  = ft.Text("0 ECTS", size=22, weight="bold", color=c("TEXT_PRIMARY"))
-    det_schol_text = ft.Text("Eligible for Scholarship", size=13,
-                              weight="w500", color="#22c55e")
-    det_schol_icon = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
-    det_table_col  = ft.Column(spacing=0)
+    det_avg_text        = ft.Text("—",      size=30, weight="bold", color=c("TEXT_PRIMARY"))
+    det_ects_text       = ft.Text("0 ECTS", size=22, weight="bold", color=c("TEXT_PRIMARY"))
+    det_schol_text      = ft.Text("Eligible for Scholarship", size=13,
+                                   weight="w500", color="#22c55e")
+    det_schol_icon      = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
+    det_table_col       = ft.Column(spacing=0)
 
     def render_detail():
         avg  = _semester_avg(modules)
@@ -530,17 +525,23 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         det_avg_text.value  = f"{avg:.1f} / 10" if avg is not None else "— / 10"
         det_ects_text.value = f"{ects} ECTS"
 
-        eligible = avg is not None and avg >= SCHOLARSHIP_THRESHOLD
-        if eligible:
-            det_schol_text.value = "Eligible for Scholarship"
-            det_schol_text.color = "#22c55e"
-            det_schol_icon.name  = ft.Icons.CHECK_CIRCLE
-            det_schol_icon.color = "#22c55e"
+        if not modules or any(not _is_complete(m) for m in modules):
+            det_schol_text.value = "Please enter all required data!"
+            det_schol_text.color = "#F59E0B"
+            det_schol_icon.name  = ft.Icons.WARNING
+            det_schol_icon.color = "#F59E0B"
         else:
-            det_schol_text.value = "Not Eligible"
-            det_schol_text.color = "#E53935"
-            det_schol_icon.name  = ft.Icons.CANCEL
-            det_schol_icon.color = "#E53935"
+            eligible = avg is not None and avg >= SCHOLARSHIP_THRESHOLD
+            if eligible:
+                det_schol_text.value = "Eligible for Scholarship"
+                det_schol_text.color = "#22c55e"
+                det_schol_icon.name  = ft.Icons.CHECK_CIRCLE
+                det_schol_icon.color = "#22c55e"
+            else:
+                det_schol_text.value = "Not Eligible"
+                det_schol_text.color = "#E53935"
+                det_schol_icon.name  = ft.Icons.CANCEL
+                det_schol_icon.color = "#E53935"
 
         def hdr(label, w=None, expand=False):
             return ft.Container(
@@ -557,7 +558,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                  hdr("Credits", w=70),
                  hdr("Assessments", w=180),
                  hdr("Module Average", w=120),
-                 hdr("Score at total", w=110),
+                 hdr("Module Score", w=110),
                  hdr("Status", w=100),
                  ft.Container(width=76)],
                 spacing=8,
@@ -567,9 +568,11 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
 
         rows = [header]
         for i, m in enumerate(modules):
-            avg_m     = _module_avg(m)
-            avg_str   = f"{avg_m:.1f} / 10" if avg_m is not None else "—"
-            score_str = _score_at_total(m)
+            avg_m        = _module_avg(m)
+            ects         = _total_ects(modules)
+            module_score = _module_score(m, ects)
+            avg_str      = f"{avg_m:.1f} / 10" if avg_m is not None else "—"
+            score_str    = f"{module_score:.2f}" if module_score is not None else "—"
 
             a_lines = ft.Column(
                 [ft.Text(

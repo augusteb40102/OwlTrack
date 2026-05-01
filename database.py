@@ -107,6 +107,28 @@ def create_tables():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at)")
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS grade_modules (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email  TEXT NOT NULL,
+            name        TEXT NOT NULL,
+            ects        REAL NOT NULL,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS grade_assessments (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            module_id   INTEGER NOT NULL,
+            type        TEXT NOT NULL,
+            grade       REAL NOT NULL,
+            weight      REAL,
+            FOREIGN KEY (module_id) REFERENCES grade_modules(id) ON DELETE CASCADE
+        )
+    """)
+
     for column, definition in [
         ("user_email", "TEXT NOT NULL DEFAULT ''"),
         ("title", "TEXT NOT NULL DEFAULT ''"),
@@ -193,6 +215,59 @@ def save_theme(email: str, theme: str) -> None:
     cursor.execute("UPDATE users SET theme = ? WHERE email = ?", (theme, email))
     conn.commit()
     conn.close()
+
+
+def save_grade_modules(user_email: str, modules: list[dict]) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM grade_assessments WHERE module_id IN (SELECT id FROM grade_modules WHERE user_email = ?)",
+        (user_email,)
+    )
+    cursor.execute("DELETE FROM grade_modules WHERE user_email = ?", (user_email,))
+
+    for module in modules:
+        cursor.execute(
+            "INSERT INTO grade_modules (user_email, name, ects) VALUES (?, ?, ?)",
+            (user_email, module.get("name", ""), module.get("ects", 0.0))
+        )
+        module_id = cursor.lastrowid
+        for assessment in module.get("assessments", []):
+            cursor.execute(
+                "INSERT INTO grade_assessments (module_id, type, grade, weight) VALUES (?, ?, ?, ?)",
+                (module_id, assessment.get("type", ""), assessment.get("grade", 0.0), assessment.get("weight"))
+            )
+
+    conn.commit()
+    conn.close()
+
+
+def load_grade_modules(user_email: str) -> list[dict]:
+    if not user_email:
+        return []
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, name, ects FROM grade_modules WHERE user_email = ? ORDER BY id",
+        (user_email,)
+    )
+    modules = []
+    for row in cursor.fetchall():
+        module_id = row["id"]
+        cursor.execute(
+            "SELECT type, grade, weight FROM grade_assessments WHERE module_id = ? ORDER BY id",
+            (module_id,)
+        )
+        assessments = [
+            {"type": a["type"], "grade": a["grade"], "weight": a["weight"]}
+            for a in cursor.fetchall()
+        ]
+        modules.append({"name": row["name"], "ects": row["ects"], "assessments": assessments})
+
+    conn.close()
+    return modules
+
 
 def get_theme(email: str) -> str:
     conn = get_connection()
