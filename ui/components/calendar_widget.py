@@ -92,7 +92,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
                     todo_tasks = []
                     if get_tasks_fn:
                         for task in get_tasks_fn():
-                            if task.get("due_date") == entry_date:
+                            if task.get("due_date") == entry_date and not task.get("completed"):
                                 todo_tasks.append(task)
                     has_todo = bool(todo_tasks)
 
@@ -387,7 +387,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
         todo_tasks = []
         if get_tasks_fn:
             for task in get_tasks_fn():
-                if task.get("due_date") == entry_date:
+                if task.get("due_date") == entry_date and not task.get("completed"):
                     todo_tasks.append(task)
 
         # Tooltip

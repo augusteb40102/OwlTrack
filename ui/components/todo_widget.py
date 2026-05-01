@@ -65,6 +65,10 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         upcoming.sort(key=lambda x: x[0])
         return [t for _, t in upcoming]
 
+    def get_todo_tasks():
+        sync_tasks()
+        return tasks
+
     def toggle_task_done(task_id: int):
         sync_tasks()
         task = next((item for item in tasks if item["id"] == task_id), None)
@@ -578,4 +582,4 @@ def build_todo(page: ft.Page, c, grad, main_panel: ft.Container, user_email: str
         refresh_statistics_ui()
 
     return (todo_detail_panel, get_todo_refs, refresh_todo_theme, set_home_panel,
-            get_upcoming_tasks, toggle_task_done, set_dashboard_widget)
+            get_upcoming_tasks, get_todo_tasks, toggle_task_done, set_dashboard_widget)
