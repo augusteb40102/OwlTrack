@@ -541,13 +541,12 @@ def dashboard_view(page: ft.Page):
         border_radius=10, gradient=grad(), alignment=ft.Alignment(0, 0),
     )
 
-    
     (
-    widget_placeholder_2,
-    gc_detail_panel,
-    refresh_grade_theme,
-    set_gc_home_panel,
-) = build_grade_calculator(page, c, grad, main_panel, user_email)
+        widget_placeholder_2,
+        gc_detail_panel,
+        refresh_grade_theme,
+        set_gc_home_panel,
+    ) = build_grade_calculator(page, c, grad, main_panel, user_email)
 
     # Pradinis render
     gc_render_dash()
@@ -643,6 +642,60 @@ def dashboard_view(page: ft.Page):
     def logout(e):
         logout_overlay.visible = True
         page.update()
+
+    # ── HELP OVERLAY ─────────────────────────────────────────────────
+    def hide_help():
+        help_overlay.visible = False
+        page.update()
+
+    def open_help(e):
+        help_overlay.visible = True
+        page.update()
+
+    help_dialog_box = ft.Container(
+        width=340, padding=ft.padding.all(28),
+        border_radius=16, bgcolor=c("SURFACE"),
+        border=ft.border.all(1, c("BORDER")),
+        content=ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text("About us & Help", size=18, weight="bold", color=c("TEXT_PRIMARY")),
+                        ft.Container(expand=True),
+                        ft.Container(
+                            content=ft.Icon(ft.Icons.CLOSE, color=c("TEXT_SECONDARY"), size=18),
+                            on_click=lambda e: hide_help(),
+                            ink=True, border_radius=4, padding=4, tooltip="Close",
+                        ),
+                    ],
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                ft.Container(height=8),
+                ft.Divider(height=1, color=c("BORDER")),
+                ft.Container(height=16),
+                ft.Text("Meet the team", size=13, weight="bold", color=c("TEXT_PRIMARY")),
+                ft.Container(height=10),
+                ft.Text("We are three informatics students on a mission to simplify student life. We built OwlTrack to help you stay on top of your academic goals and track your progress effortlessly.", size=12, color=c("TEXT_SECONDARY")),
+                ft.Container(height=16),
+                ft.Text("Contacts", size=13, weight="bold", color=c("TEXT_PRIMARY")),
+                ft.Container(height=8),
+                ft.Row([
+                    ft.Icon(ft.Icons.EMAIL, size=14, color=c("PRIMARY")),
+                    ft.Text("owltrackteam@gmail.com", size=12, color=c("TEXT_SECONDARY")),
+                ], spacing=6),
+                ft.Container(height=8),
+               
+            ],
+            spacing=4, tight=True,
+        ),
+    )
+
+    help_overlay = ft.Container(
+        visible=False, expand=True,
+        bgcolor=ft.Colors.with_opacity(0.45, ft.Colors.BLACK),
+        alignment=ft.Alignment(0, 0),
+        content=help_dialog_box,
+    )
 
     # ── SETTINGS ─────────────────────────────────────────────────────
     settings_maximized = [False]
@@ -799,6 +852,10 @@ def dashboard_view(page: ft.Page):
         logout_cancel_btn.content.color  = c("TEXT_SECONDARY")
         logout_confirm_btn.bgcolor       = c("PRIMARY")
 
+        # Help
+        help_dialog_box.bgcolor = c("SURFACE")
+        help_dialog_box.border  = ft.border.all(1, c("BORDER"))
+
         # Password fields
         for field in [old_password_field, new_password_field, repeat_new_password_field]:
             field.bgcolor              = c("SURFACE")
@@ -827,7 +884,7 @@ def dashboard_view(page: ft.Page):
         refresh_todo_theme()
         refresh_upcoming_widget()
 
-        #Grade calculator
+        # Grade calculator
         refresh_grade_theme()
 
         # Kalendorius
@@ -1081,6 +1138,17 @@ def dashboard_view(page: ft.Page):
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, c("TEXT_ON_PRIMARY"))),
     )
 
+    help_inline_btn = ft.Container(
+        content=ft.Row(
+            [ft.Icon(ft.Icons.HELP_OUTLINE, color=c("TEXT_ON_PRIMARY"), size=14),
+             ft.Text("Help", size=12, color=c("TEXT_ON_PRIMARY"), weight="w500")],
+            spacing=6, alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        on_click=open_help, ink=True, border_radius=8,
+        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+        border=ft.border.all(1, ft.Colors.with_opacity(0.3, c("TEXT_ON_PRIMARY"))),
+    )
+
     dashboard_inline_btn = ft.Container(
         content=ft.Row(
             [ft.Icon(ft.Icons.DASHBOARD, color=c("TEXT_ON_PRIMARY"), size=14),
@@ -1111,6 +1179,8 @@ def dashboard_view(page: ft.Page):
             dashboard_inline_btn,
             ft.Container(height=6),
             settings_inline_btn,
+            ft.Container(height=6),
+            help_inline_btn,
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=0,
@@ -1156,6 +1226,7 @@ def dashboard_view(page: ft.Page):
                     ft.Row([sidebar, main_content], spacing=0, expand=True),
                     logout_overlay,
                     settings_overlay,
+                    help_overlay,
                 ],
                 expand=True,
             )
