@@ -334,6 +334,16 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                 continue
             grade_str  = (tf.value or "").strip()
             weight_str = (wf.value if wf else "").strip()
+            if grade_str and not weight_str:
+                dialog_error_text.value   = "All graded assessments must include a weight"
+                dialog_error_text.visible = True
+                page.update()
+                return
+            if weight_str and not grade_str:
+                dialog_error_text.value   = "All assessments must include both grade and weight"
+                dialog_error_text.visible = True
+                page.update()
+                return
             if grade_str:
                 try:
                     g = float(grade_str.replace(",", "."))
@@ -348,8 +358,8 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                     page.update()
                     return
                 try:
-                    w = float(weight_str.replace(",", ".")) if weight_str else None
-                    if w is not None and not (0 < w <= 100):
+                    w = float(weight_str.replace(",", "."))
+                    if not (0 < w <= 100):
                         dialog_error_text.value   = "Each weight must be between 1 and 100"
                         dialog_error_text.visible = True
                         page.update()
@@ -370,9 +380,6 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                 dialog_error_text.visible = True
                 page.update()
                 return
-        else:
-            for a in assessments:
-                a["weight"] = round(100 / len(assessments), 4) if assessments else 100
 
         new_data = {"name": name, "ects": ects, "assessments": assessments}
         if editing_index[0] is None:
