@@ -522,7 +522,8 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     det_avg_text        = ft.Text("—",      size=30, weight="bold", color=c("TEXT_PRIMARY"))
     det_ects_text       = ft.Text("0 ECTS", size=22, weight="bold", color=c("TEXT_PRIMARY"))
     det_schol_text      = ft.Text("Eligible for Scholarship", size=13,
-                                   weight="w500", color="#22c55e")
+                                   weight="w500", color="#22c55e",
+                                   expand=True, max_lines=2)
     det_schol_icon      = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
     det_table_col       = ft.Column(spacing=0)
 
@@ -753,7 +754,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     )
 
     schol_card = ft.Container(
-        width=220, border_radius=14,
+        width=260, border_radius=14,
         bgcolor=ft.Colors.with_opacity(0.08, "#22c55e"),
         border=ft.border.all(1, ft.Colors.with_opacity(0.3, "#22c55e")),
         padding=ft.padding.symmetric(horizontal=18, vertical=14),
