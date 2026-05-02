@@ -69,6 +69,59 @@ def _is_complete(module: dict) -> bool:
     return bool(weights) and round(sum(weights)) >= 100
 
 
+def calculate_projection(modules: list[dict], target: float | None) -> dict:
+    """Calculate required average for remaining assessments to reach target.
+
+    Returns a dict with keys:
+      - required_avg: float or None
+      - projected_final: float
+      - status: 'achieved'|'possible'|'impossible'|'no_remaining'|'invalid'
+    """
+    if target is None:
+        return {"required_avg": None, "projected_final": 0.0, "status": "invalid"}
+
+    total_ects = _total_ects(modules)
+    if not total_ects:
+        return {"required_avg": None, "projected_final": 0.0, "status": "no_remaining"}
+
+    current_contrib = 0.0
+    remaining_share = 0.0
+
+    for m in modules:
+        ects = m.get("ects") or 0
+        assessments = m.get("assessments") or []
+        graded = [a for a in assessments if a.get("grade") is not None and a.get("weight") is not None]
+        sum_w = sum(a.get("weight", 0) for a in graded)
+        if graded and sum_w > 0:
+            avg_graded = sum(a["grade"] * a.get("weight", 0) for a in graded) / sum_w
+        else:
+            avg_graded = None
+
+        # contribution from graded part (weights expressed as percent)
+        graded_frac = min(sum_w / 100.0, 1.0)
+        current_contrib += (avg_graded or 0.0) * graded_frac * ects / total_ects
+
+        # fraction of module still remaining (by weight)
+        remaining_frac = max(0.0, 1.0 - graded_frac)
+        remaining_share += remaining_frac * ects / total_ects
+
+    # If no remaining assessments
+    if remaining_share <= 0:
+        projected = current_contrib
+        status = "achieved" if projected >= target else "no_remaining"
+        return {"required_avg": None, "projected_final": projected, "status": status}
+
+    # required average across remaining (0..10)
+    required = (target - current_contrib) / remaining_share
+    projected_final = current_contrib + remaining_share * max(0.0, required)
+
+    if required <= 0:
+        return {"required_avg": 0.0, "projected_final": projected_final, "status": "achieved"}
+    if required > 10:
+        return {"required_avg": required, "projected_final": projected_final, "status": "impossible"}
+    return {"required_avg": required, "projected_final": projected_final, "status": "possible"}
+
+
 # ---------------------------------------------------------------------------
 def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str = ""):
     # Load modules from DB for the given user_email. Fallback to sample when no user.
@@ -96,6 +149,8 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     dash_ects_text = ft.Text("0", size=13, weight="w500", color=c("TEXT_SECONDARY"))
     dash_rows_col  = ft.Column(spacing=4)
     goal_value: list[float] = [8.5]
+    # target input binds to this value
+    target_value: list[float | None] = [goal_value[0]]
 
     # ── GOAL RING ────────────────────────────────────────────────────────
     RING_SIZE = 54
@@ -142,6 +197,17 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     goal_ring_slot = ft.Container(
         width=RING_SIZE, height=RING_SIZE,
         content=build_goal_ring(None, goal_value[0]),
+    )
+
+    # Target input field (in detail view) - created here so render_detail can access it
+    target_input = ft.TextField(
+        label="",
+        width=120,
+        value=str(target_value[0]) if target_value[0] is not None else "",
+        text_style=ft.TextStyle(size=13, color=c("TEXT_PRIMARY")),
+        label_style=ft.TextStyle(color=c("TEXT_SECONDARY")),
+        bgcolor=c("SURFACE"), border_color=c("BORDER"),
+        focused_border_color=c("PRIMARY"),
     )
 
     # ── render compact ───────────────────────────────────────────────────
@@ -524,6 +590,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     det_schol_text      = ft.Text("Eligible for Scholarship", size=13,
                                    weight="w500", color="#22c55e",
                                    expand=True, max_lines=2)
+    det_proj_text       = ft.Text("", size=12, color=c("TEXT_SECONDARY"))
     det_schol_icon      = ft.Icon(ft.Icons.CHECK_CIRCLE, color="#22c55e", size=16)
     det_table_col       = ft.Column(spacing=0)
 
@@ -550,6 +617,40 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                 det_schol_text.color = "#E53935"
                 det_schol_icon.name  = ft.Icons.CANCEL
                 det_schol_icon.color = "#E53935"
+
+        # Projection / target calculations
+        t_val = None
+        t_raw = (target_input.value or "").strip()
+        if t_raw:
+            try:
+                t_val = float(t_raw.replace(",", "."))
+            except ValueError:
+                t_val = None
+
+        if t_raw == "":
+            det_proj_text.value = ""
+            det_proj_text.color = c("TEXT_SECONDARY")
+        elif t_val is None or t_val < 0 or t_val > 10:
+            det_proj_text.value = "Invalid target average (enter 0–10)"
+            det_proj_text.color = "#E53935"
+        else:
+            res = calculate_projection(modules, t_val)
+            status = res.get("status")
+            if status == "no_remaining":
+                pf = res.get("projected_final", 0.0)
+                det_proj_text.value = f"Final average: {pf:.2f} — {'Achieved' if pf>=t_val else 'Not achieved'}"
+                det_proj_text.color = ("#22c55e" if pf >= t_val else "#E53935")
+            elif status == "achieved":
+                det_proj_text.value = "Target already achieved."
+                det_proj_text.color = "#22c55e"
+            elif status == "impossible":
+                det_proj_text.value = "Impossible to achieve: required average > 10."
+                det_proj_text.color = "#E53935"
+            elif status == "possible":
+                rq = res.get("required_avg", 0.0)
+                pf = res.get("projected_final", 0.0)
+                det_proj_text.value = f"If I average {rq:.2f} on remaining assessments, final average would be {pf:.2f}."
+                det_proj_text.color = c("TEXT_SECONDARY")
 
         def hdr(label, w=None, expand=False):
             return ft.Container(
@@ -764,7 +865,9 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                          weight="w600", color=c("TEXT_PRIMARY")),
                 ft.Container(height=4),
                 ft.Row([det_schol_icon, det_schol_text], spacing=6,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                ft.Container(height=6),
+                det_proj_text,
             ],
             spacing=0,
         ),
@@ -790,7 +893,17 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                                            alignment=ft.MainAxisAlignment.START),
                                     ft.Container(height=16),
                                     ft.Row([avg_card, ects_card, schol_card], spacing=12),
-                                    ft.Container(height=20),
+                                    ft.Container(height=8),
+                                    ft.Row(
+                                        [
+                                            ft.Text("Target average", size=11, color=c("TEXT_SECONDARY")),
+                                            ft.Container(width=8),
+                                            target_input,
+                                        ],
+                                        spacing=8,
+                                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                    ),
+                                    ft.Container(height=12),
                                     ft.Container(
                                         expand=True,
                                         border_radius=12,
@@ -906,6 +1019,9 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         render_detail()
 
     # Initial render
+    # wire target input to refresh the projection when changed
+    target_input.on_change = lambda e: refresh_all()
+
     render_dash()
     render_detail()
 
