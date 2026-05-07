@@ -32,19 +32,20 @@ SCHOLARSHIP_THRESHOLD = 8.0
 
 
 def _module_avg(module: dict) -> float | None:
-    assessments = [a for a in module["assessments"] if a.get("grade") is not None]
+    assessments = [a for a in module["assessments"] if a.get("grade") is not None and a.get("weight") is not None]
     if not assessments:
         return None
-    total_w = sum(a.get("weight", 100) for a in assessments)
+    total_w = sum(a["weight"] for a in assessments)
     if not total_w:
         return None
-    return sum(a["grade"] * a.get("weight", 100) for a in assessments) / total_w
+    # Calculate weighted module average as grade*weight% across assessments.
+    return sum(a["grade"] * a["weight"] for a in assessments) / 100.0
 
 
 def _module_score(module: dict, total_ects: float) -> float | None:
     """Calculate module contribution to semester average.
 
-    Module score = module average * (module credits / total credits).
+    Module contribution = module average * (module credits / total credits).
     """
     avg = _module_avg(module)
     if avg is None or not total_ects:
@@ -667,7 +668,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                  hdr("Credits", w=70),
                  hdr("Assessments", w=180),
                  hdr("Module Average", w=120),
-                 hdr("Module Score", w=110),
+                 hdr("Contribution", w=110),
                  hdr("Status", w=100),
                  ft.Container(width=76)],
                 spacing=8,
@@ -677,11 +678,11 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
 
         rows = [header]
         for i, m in enumerate(modules):
-            avg_m        = _module_avg(m)
-            ects         = _total_ects(modules)
-            module_score = _module_score(m, ects)
-            avg_str      = f"{avg_m:.1f} / 10" if avg_m is not None else "—"
-            score_str    = f"{module_score:.2f}" if module_score is not None else "—"
+            avg_m             = _module_avg(m)
+            ects              = _total_ects(modules)
+            module_contrib    = _module_score(m, ects)
+            avg_str           = f"{avg_m:.1f} / 10" if avg_m is not None else "—"
+            contrib_str      = f"{module_contrib:.2f}" if module_contrib is not None else "—"
 
             a_lines = ft.Column(
                 [ft.Text(
@@ -718,7 +719,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
                         ft.Container(content=a_lines, width=180),
                         ft.Text(avg_str, size=13, weight="bold",
                                 color=c("TEXT_PRIMARY"), width=120),
-                        ft.Text(score_str, size=12, color=c("TEXT_SECONDARY"), width=110),
+                        ft.Text(contrib_str, size=12, color=c("TEXT_SECONDARY"), width=110),
                         ft.Row([status_dot, status_text], spacing=6, width=100),
                         # Edit + Delete buttons
                         ft.Row(
