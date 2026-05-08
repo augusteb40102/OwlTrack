@@ -178,9 +178,11 @@ Atidaromas pagrindinis vartotojo langas, kuriame galime atlikti skirtingas funkc
 
 <img width="975" height="494" alt="image" src="https://github.com/user-attachments/assets/e7481620-bd89-4e30-87ce-a5a0a30df4af" />
 
-Paspaudus mygtuką „Settings“ esančiame pagrindinio lango kairėje pusėje, galima pakeisti programėlės tematiką, profilio nuotrauką ir slaptažodį. Po atliktų pakeitimų svarbu paspausti mygtuką „Save“. Keičiamam slaptažodžiui papildomai pasirenkamas mygtukas „Confirm“. Jei vartotojas nenori išsaugoti pasirinkimų, spaudžiama „Cancel“.
+Paspaudus mygtuką „Settings“ esančiame pagrindinio lango kairėje pusėje, galima pakeisti programėlės tematiką, profilio nuotrauką ir slaptažodį. Po atliktų pakeitimų svarbu paspausti mygtuką „Save“. Keičiamam slaptažodžiui papildomai pasirenkamas mygtukas „Confirm“.
 
 <img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/b4a368ea-9b2b-4d13-bcdd-b1627fb9484d" />
+
+Jei vartotojas nenori išsaugoti pasirinkimų, spaudžiama „Cancel“.
 
 <img width="975" height="493" alt="image" src="https://github.com/user-attachments/assets/9c5e9c4c-0306-4a62-ad2b-03e885dfa0f5" />
 
@@ -191,6 +193,37 @@ Paspaudus mygtuką „Help“ esančiame pagrindinio lango kairėje pusėje,  ga
 Paspaudus mygtuką „Log Out“ esančiame apačioje, pagrindinio lango kairėje pusėje, galima atsijungti nuo programėlės ir baigti sesiją. Po mygtuko paspaudimo, vartotojas nukreipiamas į prisijungimo langą.
 
 <img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/d9f28483-b6fb-41c1-99c9-4973108f9320" />
+
+### To-Do-List
+Paspaudus ant „To-Do-List“ langelio esančiame viršuje, pagrindinio lango dešinėje pusėje. Atidaromas detalesnis langas, kuriame galima pridėti įvykius. Apskritimas, prie pavaizduoto įvykio, leidžia pažymėti šį kaip atliktą ir perkelti prie atliktųjų sąrašo. 
+
+<img width="975" height="495" alt="image" src="https://github.com/user-attachments/assets/f9aad54c-4ddf-4047-b755-078aedf7af3f" />
+
+Paspaudus mygtuką „Add new task“ išskleidžiamas nedidelis langelis, kuriame vartotojas gali suvesti duomenis apie artėjantį įvykį ir pridėti jį į sąrašą.
+
+<img width="975" height="496" alt="image" src="https://github.com/user-attachments/assets/8a873c26-18fb-47dc-8b08-fbaa010309b6" />
+
+Svarbiausi įvykiai sąraše pateikiami pradžioje. Kiekvienas pažymėtas įvykis sekamas, daroma mėnesio statistika apie atliktus darbus, praėjusius susitikimus. Vartotojui pateikiama diagrama apie jo produktyvumą.
+
+<img width="975" height="495" alt="image" src="https://github.com/user-attachments/assets/67f2a16b-e565-4321-bc18-c75409cb6e9d" />
+
+### Grade Calculator
+Paspaudus ant „Grade Calculator“ langelio esančiame apačioje, pagrindinio lango dešinėje pusėje. Atidaromas detalesnis langas, kuriame galima sekti pažangumą, matyti ar gauti pažymiai, rezultatai tenkina stipendijos reikalavimus.  Vartotojas gali nurodyti siekiamą vidurkį. Pagal esamą ir siekiamą pažymį skaičiuojama ar tenkinama stipendijos sąlyga.
+
+<img width="975" height="495" alt="image" src="https://github.com/user-attachments/assets/4cb66f58-3327-4cf3-adbd-14c8f6567bd8" />
+
+Paspaudus mygtuką „Add New Module“ vartotojui rodomas langas, kuriame galima įvesti naują modulį bei jo atsiskaitymus. Įvestą informaciją būtina išsaugoti mygtuku „Save Module“ .  Ištrinti modulį galima paspaudus šiukšliadėžės ikonėlę, kuri pavaizduota dešinėje eilutės pusėje.
+
+<img width="975" height="492" alt="image" src="https://github.com/user-attachments/assets/b2676117-ee4f-4a4d-9710-b71837e50b33" />
+
+Norint pridėti ar redaguoti atsiskaitymą prie esančio modulio, vartotojas turi spausti pieštuko ikonėlę pavaizduotą dešinėje pusėje. Atskleidžiamas redagavimo langas, kuriame paspaudus „Add Assessment“ galima pridėti naują užduotį. Pakeitimai turi būti išsaugoti mygtuku „Save Changes“.
+
+<img width="975" height="494" alt="image" src="https://github.com/user-attachments/assets/9b6e4c13-2e62-43e0-b60c-43dfe6dfdd4d" />
+
+
+
+
+
 
 
 
