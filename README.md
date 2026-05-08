@@ -127,6 +127,18 @@ python main.py
 
 ## Programos instrukcija naudotojui
 ### Registracija
+Atidarius programėlę, vartotojas nukreipiamas į pradinį langą. Jei vartotojas neturi paskyros, visų pirma ją reiktų susikurti. Vartotojas, kuris neturi paskyros, spaudžia mygtuką „Register“. Priešingu atveju, prisijungiama naudojant mygtuką „Login“.
+
+<img width="975" height="495" alt="image" src="https://github.com/user-attachments/assets/26ffbd67-b3df-4c45-89f1-37c66601517c" />
+
+Atidaromas registracijos langas, kuriame prašoma suvesti reikiamus duomenis. Pirmajame langelyje suvedamas vartotojo elektroninis paštas, antrajame vardas, trečiajame ir ketvirtajame įvedamas, pakartojamas slaptažodis. Spaudžiame mygtuką „Create account“.
+
+<img width="975" height="494" alt="image" src="https://github.com/user-attachments/assets/d917a596-362a-4f33-b6b5-d4b6447bb41e" />
+
+Po sėkmingos registracijos, atidaromas naujas langas, kuriame vartotojas turi galimybę pasirinkti norima pelėdžiuką ir nustatyti šią ikonėlę kaip profilinę nuotrauką. Mygtukas „Skip“  leidžia praleisti šį žingsnį. Pasirinkus paveiksliuką, spaudžiame „Confirm Selection“.
+
+<img width="975" height="494" alt="image" src="https://github.com/user-attachments/assets/67983aa1-4043-44a2-9f08-d6f4607efa14" />
+
 ### Prisijungimas
 Atidarius programą vartotojas nukreipiamas į pagrindinį langą, kur matomi mygtukai „Log in“ ir „Register“. Norėdamas prisijungti vartotojas turi paspausti „Log in“ mygtuką.
 
