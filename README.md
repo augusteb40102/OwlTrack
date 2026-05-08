@@ -172,3 +172,27 @@ Paspaudus mygtuką „Save“ langelis pradings, o kalendoriuje pažymėta diena
 Užregistravus užduotį To-Do list‘e, kalendoriuje taip pat atsiras pažymėta diena (pažymi tą dieną, kurią turi būti pabaigta užduotis), ji nusispalvina žydra spalva. Užvedus pelytę ant dienos vartotojas taip pat pamatys užduoties pavadinimą, bei tipą.
 
 <img width="940" height="462" alt="image" src="https://github.com/user-attachments/assets/8d6d23d7-d27d-4d30-a2db-261511bdae00" />
+
+### Pagrindinis langas
+Atidaromas pagrindinis vartotojo langas, kuriame galime atlikti skirtingas funkcijas: pažymėti įvykius kalendoriuje, sukurti įvykių atmintinę, sekti pažymių pasiekimų lygį naudojantis specialia skaičiuokle.
+
+<img width="975" height="494" alt="image" src="https://github.com/user-attachments/assets/e7481620-bd89-4e30-87ce-a5a0a30df4af" />
+
+Paspaudus mygtuką „Settings“ esančiame pagrindinio lango kairėje pusėje, galima pakeisti programėlės tematiką, profilio nuotrauką ir slaptažodį. Po atliktų pakeitimų svarbu paspausti mygtuką „Save“. Keičiamam slaptažodžiui papildomai pasirenkamas mygtukas „Confirm“. Jei vartotojas nenori išsaugoti pasirinkimų, spaudžiama „Cancel“.
+
+<img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/b4a368ea-9b2b-4d13-bcdd-b1627fb9484d" />
+
+<img width="975" height="493" alt="image" src="https://github.com/user-attachments/assets/9c5e9c4c-0306-4a62-ad2b-03e885dfa0f5" />
+
+Paspaudus mygtuką „Help“ esančiame pagrindinio lango kairėje pusėje,  galima gauti reikiamą informaciją apie programėlės kūrėjus, nurodomi kontaktai, kuriais galima kreiptis iškilus klausimams.
+
+<img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/552c811b-b8d2-44a9-8c4a-d495cf0589ba" />
+
+Paspaudus mygtuką „Log Out“ esančiame apačioje, pagrindinio lango kairėje pusėje, galima atsijungti nuo programėlės ir baigti sesiją. Po mygtuko paspaudimo, vartotojas nukreipiamas į prisijungimo langą.
+
+<img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/d9f28483-b6fb-41c1-99c9-4973108f9320" />
+
+
+
+
+
