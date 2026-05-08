@@ -110,3 +110,32 @@ python main.py
 Atidarius programą vartotojas nukreipiamas į pagrindinį langą, kur matomi mygtukai „Log in“ ir „Register“. Norėdamas prisijungti vartotojas turi paspausti „Log in“ mygtuką.
 
 <img width="940" height="478" alt="image" src="https://github.com/user-attachments/assets/90898184-5e54-4cd1-ae58-0e58365836c4" />
+
+Paspaudus „Log in“ vartotojas nukreipiamas į prisijungimo langą. Čia reikia įvesti el. pašto adresą ir slaptažodį. Jei naudotojas nori, kad programa jį atsimintų ir sekantį kartą nereikėtų vesti duomenų, reikia pažymėti „Remember me“ varnelę.
+
+<img width="940" height="471" alt="image" src="https://github.com/user-attachments/assets/818d43fd-1ec6-441d-bc82-3578a688c08a" />
+
+Vartotojui pamiršus slaptažodį reikia paspausti mygtuką „Forgot password?“. Vartotojas bus nukreipiamas i langą, kuriame reikės įvesti užregistruotą el. pašto adresą ir paspausti mygtuką „Send link“. Vartotojas į paštą gaus kodą, kurį reikės suvesti vietoje slaptažodžio ir tuomet naudotojas sėkmingai prisijungs prie paskyros.
+
+<img width="940" height="461" alt="image" src="https://github.com/user-attachments/assets/efa7cb89-3bf5-4b9f-af7c-474eff3640be" />
+
+Jei prisijungimas pavyko sėkmingai, atsivers pradinis programos langas:
+
+<img width="940" height="482" alt="image" src="https://github.com/user-attachments/assets/4728b60b-e1c0-4cd7-9fd5-4328a4ea2f03" />
+
+### Kalendorius
+Pradiniame lange paspaudus kalendoriaus rėmų plotą, vartotojui atsidarys kalendoriaus langas, kuriame galima matyti metus, mėnesius, dienas, pažymėtas veiklas.
+
+<img width="940" height="471" alt="image" src="https://github.com/user-attachments/assets/f3ad7df1-b947-40d9-a721-3977535c7978" />
+
+Norint užregistruoti veiklą, arba pridėti tam tikros dienos emociją, reikia paspausti ant norimos datos. Paspaudus atsidaro langelis, kuriame vartotojas gali įvesti norimą veiklą, bei pasirikti emociją.
+
+<img width="940" height="475" alt="image" src="https://github.com/user-attachments/assets/8df10275-d9ad-432a-8891-231e80ee3c53" />
+
+Paspaudus mygtuką „Save“ langelis pradings, o kalendoriuje pažymėta diena nusispalvins rožine spalva. Užvedus pelytę ant to langelio matysime užregistruotą veiklą:
+
+<img width="940" height="468" alt="image" src="https://github.com/user-attachments/assets/5d7e94f3-9681-4cfc-a4bc-e59cc81a7657" />
+
+Užregistravus užduotį To-Do list‘e, kalendoriuje taip pat atsiras pažymėta diena (pažymi tą dieną, kurią turi būti pabaigta užduotis), ji nusispalvina žydra spalva. Užvedus pelytę ant dienos vartotojas taip pat pamatys užduoties pavadinimą, bei tipą.
+
+<img width="940" height="462" alt="image" src="https://github.com/user-attachments/assets/8d6d23d7-d27d-4d30-a2db-261511bdae00" />
