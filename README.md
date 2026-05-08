@@ -103,4 +103,8 @@ python main.py
 > **Pastaba:** Jei programa paleidžiama iš vykdomojo failo, `assets/` aplankas turi būti toje pačioje direktorijoje.
 
 ## Programos instrukcija naudotojui
-### tatata
+### Registracija
+### Prisijungimas
+Atidarius programą vartotojas nukreipiamas į pagrindinį langą, kur matomi mygtukai „Log in“ ir „Register“. Norėdamas prisijungti vartotojas turi paspausti „Log in“ mygtuką.
+
+<img width="940" height="478" alt="image" src="https://github.com/user-attachments/assets/90898184-5e54-4cd1-ae58-0e58365836c4" />
