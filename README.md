@@ -1,4 +1,4 @@
-<div align="center"> <img src="assets/owl_clean.png" alt="OwlTrack logo" width="180" /> </div>
+<div align="left"> <img src="assets/owl_clean.png" alt="OwlTrack logo" width="180" /> </div>
 
 # OwlTrack
 
