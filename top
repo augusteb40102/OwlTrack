@@ -1,0 +1,16 @@
+[33mb38d452[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m)[m HEAD@{0}: merge origin/develop: Merge made by the 'ort' strategy.
+[33m1f4b5ba[m HEAD@{1}: reset: moving to HEAD
+[33m1f4b5ba[m HEAD@{2}: commit: Pakeitimas i anglu kalba
+[33mbe5794f[m HEAD@{3}: merge origin/develop: Fast-forward
+[33m018ccae[m HEAD@{4}: merge origin/develop: Fast-forward
+[33m3fe0470[m HEAD@{5}: merge origin/develop: Fast-forward
+[33m72a4ebc[m HEAD@{6}: merge origin/develop: Fast-forward
+[33mcd4eaa4[m HEAD@{7}: commit: Sukurtas registracijos langas su visais ivedimais.
+[33m2de4aa4[m HEAD@{8}: merge origin/develop: Fast-forward
+[33ma533a24[m HEAD@{9}: merge origin/develop: Fast-forward
+[33m04cae6b[m HEAD@{10}: commit: Prasau patasiyti, neiseina!!
+[33mfcfcac3[m HEAD@{11}: merge origin/develop: Fast-forward
+[33mc1def3d[m HEAD@{12}: merge origin/develop: Fast-forward
+[33m70abb33[m HEAD@{13}: reset: moving to HEAD
+[33m70abb33[m HEAD@{14}: checkout: moving from main to develop
+[33mbcb7830[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{15}: clone: from https://github.com/augusteb40102/OwlTrack.git
