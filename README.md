@@ -1,5 +1,4 @@
 # OwlTrack
-# OwlTrack
 
 ## Trumpas programos aprašas
 
