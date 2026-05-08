@@ -38,7 +38,7 @@ OwlTrack naudoja **SQLite** – lengvą, serverio nereikalaujančią duomenų ba
 Duomenų bazėje saugoma:
 
 - naudotojų paskyros (el. paštas, užkoduotas slaptažodis)
-- To-Do užduotys su kategorijomis ir deadline datomis
+- To-Do užduotys su kategorijomis ir užduočių pabaigos termino datomis
 - kalendoriaus įrašai
 - pažymių skaičiuoklės duomenys
 
