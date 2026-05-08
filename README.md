@@ -101,3 +101,6 @@ python main.py
 ```
 
 > **Pastaba:** Jei programa paleidžiama iš vykdomojo failo, `assets/` aplankas turi būti toje pačioje direktorijoje.
+
+## Programos instrukcija naudotojui
+### tatata
