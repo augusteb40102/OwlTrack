@@ -2,6 +2,10 @@
 
 # OwlTrack
 
+## Darbą atliko
+* Augustė Bataitytė
+* Austėja Jesiulionytė
+* Agnė Merkelytė
 ## Trumpas programos aprašas
 
 Sukurta programa, kurios tikslas yra šiek tiek palengvinti studentų kasdieninį gyvenimą. Atsidarius programą ir prisiregistravus galima naudotis programoje sukurtomis funkcijomis – kalendorius, To-Do list ir skaičiuoklė.
@@ -11,6 +15,23 @@ Sukurta programa, kurios tikslas yra šiek tiek palengvinti studentų kasdienin�
 - **Skaičiuoklė** skirta mokymosi progreso sekimui. Galima įvesti siekiamą vidurkį, kurio prognozę programa apskaičiuoja pagal esamų modulio pažymių vidurkį. Skaičiuoklėje galima pridėti norimus modulius, pažymėti kreditus, gautus pažymius ir t.t.
 
 Taip pat programoje patogu keisti fono temą, slaptažodį, bei prireikus pagalbos susisiekti su mūsų komanda el. paštu.
+
+## Testavimas
+<img width="531" height="737" alt="image" src="https://github.com/user-attachments/assets/893417d7-36a0-4169-b28b-42c97c2ff2a4" />
+<img width="532" height="817" alt="image" src="https://github.com/user-attachments/assets/1dda3f14-69ac-4a9a-b1d3-7824989767e9" />
+<img width="530" height="635" alt="image" src="https://github.com/user-attachments/assets/c704174f-8438-4d0e-9e7d-f12b958133f4" />
+<img width="531" height="707" alt="image" src="https://github.com/user-attachments/assets/76492ba7-fdfc-4c88-9f53-bb1c5765d8d1" />
+<img width="530" height="782" alt="image" src="https://github.com/user-attachments/assets/40fa90ff-709d-4bfc-b1f0-a3aff3d4429b" />
+<img width="532" height="436" alt="image" src="https://github.com/user-attachments/assets/ad2cb4e0-588f-4bce-8b22-c54550fe791c" />
+<img width="532" height="770" alt="image" src="https://github.com/user-attachments/assets/5ce0aefa-9e8e-4182-89e9-99404f92e6b2" />
+<img width="531" height="126" alt="image" src="https://github.com/user-attachments/assets/837bf564-bfab-4044-94b7-2a3ab58b8499" />
+
+
+
+
+
+
+
 
 ## Technologijos
 
