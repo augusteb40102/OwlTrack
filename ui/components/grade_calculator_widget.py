@@ -1020,8 +1020,22 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         render_detail()
 
     # Initial render
-    # wire target input to refresh the projection when changed
-    target_input.on_change = lambda e: refresh_all()
+    # wire target input to refresh the projection and goal value when changed
+    def on_target_change(e=None):
+        val = (target_input.value or "").strip()
+        try:
+            v = float(val.replace(",", "."))
+            if 0 <= v <= 10:
+                goal_value[0] = v
+                target_value[0] = v
+            else:
+                # jei neteisinga reikšmė, nekeičiam goal_value
+                target_value[0] = None
+        except Exception:
+            target_value[0] = None
+        refresh_all()
+
+    target_input.on_change = on_target_change
 
     render_dash()
     render_detail()
