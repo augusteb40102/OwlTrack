@@ -1,3 +1,4 @@
+# UI komponentas vartotojo profilio nuotraukos pasirinkimui.
 import flet as ft
 from ui.themes.backgrounds import auth_background
 from database import save_avatar

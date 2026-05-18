@@ -1,3 +1,4 @@
+# UI komponentas prisijungimo funkcionalumui.
 import flet as ft
 import re
 import json

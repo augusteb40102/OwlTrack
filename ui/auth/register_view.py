@@ -1,3 +1,4 @@
+# UI komponentas registracijos funkcionalumui.
 import flet as ft
 import re
 from ui.themes.backgrounds import auth_background

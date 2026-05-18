@@ -1,3 +1,4 @@
+# dashboard_view.py – pagrindinis vartotojo informacijos suvestinės langas, rodantis kalendorių, užduočių sąrašą, pažymių skaičiuoklę ir leidžiantis keisti nustatymus
 import flet as ft
 import ui.themes.themes as th
 from ui.themes.themes import apply_theme, THEMES
@@ -10,7 +11,7 @@ from database import change_user_password as db_change_user_password
 from database import save_theme as db_save_theme
 from database import get_theme as db_get_theme
 
-RADIUS_LG = 20
+RADIUS_LG = 20 
 SPACE_LG  = 24
 
 PROFILE_AVATARS = [
@@ -29,9 +30,6 @@ THEME_OPTIONS = [
     {"id": "green",  "label": "Green",             "dot": "#22c55e"},
 ]
 
-# ---------------------------------------------------------------------------
-# Grade calculator duomenys (vėliau pakeisti DB)
-# ---------------------------------------------------------------------------
 _SAMPLE_MODULES = [
     {"name": "Matematika", "grade": 8.7, "weight": 9.0},
     {"name": "Istorija",   "grade": 7.0, "weight": 9.0},
@@ -223,7 +221,7 @@ def dashboard_view(page: ft.Page):
 
     set_dashboard_widget(refresh_dashboard_widgets)
 
-    # ── TO-DO WIDGET (placeholder 1) ──────────────────────────────────
+    # ── TO-DO WIDGET ──────────────────────────────────
     widget_placeholder_1 = ft.Container(
         expand=True,
         border_radius=RADIUS_LG,
@@ -267,7 +265,6 @@ def dashboard_view(page: ft.Page):
             return None
         return sum(m["grade"] * m["weight"] for m in mods) / total_w
 
-    # Shared text refs
     gc_dash_avg   = ft.Text("—", size=28, weight="bold", color=c("TEXT_PRIMARY"))
     gc_dash_goal  = ft.Text(f"{gc_goal[0]:.1f}", size=18, weight="bold", color=c("TEXT_ON_PRIMARY"))
     gc_dash_mods  = ft.Column(spacing=4)
@@ -279,7 +276,7 @@ def dashboard_view(page: ft.Page):
 
     gc_error_text = ft.Text("", color="#E53935", size=12, visible=False)
 
-    # Detail fields
+    # Pažymių skaičiuoklės formos laukai ir dropdown'ai
     gc_subj_dd = ft.Dropdown(
         options=[ft.dropdown.Option(s) for s in subj_options],
         value=subj_options[0], width=160,
@@ -417,7 +414,7 @@ def dashboard_view(page: ft.Page):
 
     gc_goal_f.on_change = gc_goal_changed
 
-    # ── Grade calculator: detail panel ───────────────────────────────
+    # ── Pažymių skaičiuoklės mygtukai ──────────────────────────────────
     gc_add_btn = ft.Container(
         content=ft.Text("Pridėti", size=13, color=c("TEXT_ON_PRIMARY"), weight="w600"),
         on_click=gc_add, ink=True, border_radius=8,
@@ -527,7 +524,7 @@ def dashboard_view(page: ft.Page):
         main_panel.content = gc_detail_panel
         main_panel.update()
 
-    # ── Grade calculator: compact dashboard widget ────────────────────
+    # ── Pažymių skaičiuoklės tikslas ────────────────────
     gc_goal_badge = ft.Container(
         content=ft.Column(
             [
@@ -548,11 +545,9 @@ def dashboard_view(page: ft.Page):
         set_gc_home_panel,
     ) = build_grade_calculator(page, c, grad, main_panel, user_email)
 
-    # Pradinis render
     gc_render_dash()
     gc_render_detail()
 
-    # ── RIGHT COLUMN ──────────────────────────────────────────────────
     right_column = ft.Column(
         [widget_placeholder_1, widget_placeholder_2],
         spacing=12, expand=False, width=280,
@@ -572,7 +567,7 @@ def dashboard_view(page: ft.Page):
     set_gc_home_panel(home_panel)
     set_todo_home_panel(home_panel)
 
-    # ── AVATAR WIDGET ─────────────────────────────────────────────────
+    # Avataro rodymas ir pasirinkimas
     def build_avatar_content(src):
         if src:
             return ft.Image(src=src, width=90, height=90, fit="contain")
@@ -593,7 +588,7 @@ def dashboard_view(page: ft.Page):
         width=90, height=90, alignment=ft.Alignment(0, 0),
     )
 
-    # ── LOGOUT OVERLAY ────────────────────────────────────────────────
+    # Atsijungimo dialogas ─────────────────────────────────────────────────
     logout_title      = ft.Text("Log Out", size=18, weight="bold", color=c("TEXT_PRIMARY"))
     logout_subtitle   = ft.Text("Are you sure you want to log out?", size=13, color=c("TEXT_SECONDARY"))
     logout_cancel_btn = ft.Container(
@@ -643,7 +638,7 @@ def dashboard_view(page: ft.Page):
         logout_overlay.visible = True
         page.update()
 
-    # ── HELP OVERLAY ─────────────────────────────────────────────────
+    # Pagalbos dialogas ─────────────────────────────────────────────────
     def hide_help():
         help_overlay.visible = False
         page.update()
@@ -697,7 +692,7 @@ def dashboard_view(page: ft.Page):
         content=help_dialog_box,
     )
 
-    # ── SETTINGS ─────────────────────────────────────────────────────
+    # ── NUSTATYMAI ─────────────────────────────────────────────────────
     settings_maximized = [False]
     maximize_icon = ft.Icon(icon=ft.Icons.FULLSCREEN, color=c("TEXT_ON_PRIMARY"), size=18)
 
@@ -808,7 +803,7 @@ def dashboard_view(page: ft.Page):
         gradient=grad(),
     )
 
-    # ── SAVE SETTINGS ────────────────────────────────────────────────
+    # ── Išsaugoti nustatymus ────────────────────────────────────────────────
     def save_settings(e):
         if selected_id[0] is not None:
             chosen = next((a for a in PROFILE_AVATARS if a["id"] == selected_id[0]), None)
@@ -828,13 +823,11 @@ def dashboard_view(page: ft.Page):
 
         apply_theme(new_theme)
 
-        # Sidebar
         sidebar.bgcolor                     = c("PRIMARY")
         sidebar.content.controls[0].bgcolor = c("PRIMARY")
         logout_btn.gradient                 = grad()
         main_content.bgcolor                = c("SURFACE")
 
-        # Settings
         settings_title_bar.bgcolor        = c("PRIMARY")
         settings_window.bgcolor           = c("SURFACE")
         settings_window.border            = ft.border.all(1, c("BORDER"))
@@ -843,7 +836,6 @@ def dashboard_view(page: ft.Page):
         settings_cancel_btn.border        = ft.border.all(1, c("BORDER"))
         settings_cancel_btn.content.color = c("TEXT_SECONDARY")
 
-        # Logout
         logout_dialog_box.bgcolor        = c("SURFACE")
         logout_dialog_box.border         = ft.border.all(1, c("BORDER"))
         logout_title.color               = c("TEXT_PRIMARY")
@@ -852,11 +844,10 @@ def dashboard_view(page: ft.Page):
         logout_cancel_btn.content.color  = c("TEXT_SECONDARY")
         logout_confirm_btn.bgcolor       = c("PRIMARY")
 
-        # Help
         help_dialog_box.bgcolor = c("SURFACE")
         help_dialog_box.border  = ft.border.all(1, c("BORDER"))
 
-        # Password fields
+        # Slaptažodžio keitimo formos elementai
         for field in [old_password_field, new_password_field, repeat_new_password_field]:
             field.bgcolor              = c("SURFACE")
             field.border_color         = c("BORDER")
@@ -865,18 +856,18 @@ def dashboard_view(page: ft.Page):
             field.label_style          = ft.TextStyle(color=c("TEXT_SECONDARY"))
         password_success_text.color = c("PRIMARY")
 
-        # Avatar grid
+        # Avatarų pasirinkimas
         for aid, container in avatar_refs.items():
             container.border  = ft.border.all(3, c("SECONDARY") if aid == selected_id[0] else ft.Colors.TRANSPARENT)
             container.bgcolor = c("SURFACE")
 
-        # Theme picker
+        # Temų pasirinkimas
         for tid, row in theme_btns.items():
             is_active = tid == selected_theme[0]
             row.parent.border      = ft.border.all(2, c("SECONDARY") if is_active else ft.Colors.with_opacity(0.15, c("TEXT_PRIMARY")))
             row.controls[1].weight = "bold" if is_active else "w400"
 
-        # Placeholders
+        # Valdiklių vietos
         widget_placeholder_1.border = ft.border.all(2, c("BORDER"))
         widget_placeholder_2.border = ft.border.all(2, c("BORDER"))
 
@@ -884,7 +875,7 @@ def dashboard_view(page: ft.Page):
         refresh_todo_theme()
         refresh_upcoming_widget()
 
-        # Grade calculator
+        # Pažymių skaičiuoklė
         refresh_grade_theme()
 
         # Kalendorius
@@ -907,6 +898,7 @@ def dashboard_view(page: ft.Page):
         settings_overlay.visible = False
         page.update()
 
+    # Slaptažodžio keitimo validacija ir pateikimas
     def validate_new_password(password: str, old_password: str):
         if len(password) < 7:
             return "New password must be at least 7 characters"
@@ -918,6 +910,7 @@ def dashboard_view(page: ft.Page):
             return "New password must be different from current password"
         return None
 
+    # Slaptažodžio keitimo pateikimo funkcija
     def submit_password_change(e):
         password_error_text.visible   = False
         password_success_text.visible = False
@@ -975,7 +968,7 @@ def dashboard_view(page: ft.Page):
         repeat_new_password_field.value = ""
         page.update()
 
-    # ── AVATAR GRID ───────────────────────────────────────────────────
+    # ── Avatarų pasirinkimas ────────────────────────────────────────────────────
     avatar_items = []
     for avatar in PROFILE_AVATARS:
         is_selected = avatar["id"] == selected_id[0]
@@ -1082,6 +1075,7 @@ def dashboard_view(page: ft.Page):
         content=settings_window,
     )
 
+    # Atidaryti nustatymų langą
     def open_settings(e):
         settings_maximized[0]  = False
         settings_window.width  = 520
@@ -1105,6 +1099,7 @@ def dashboard_view(page: ft.Page):
                          color=c("TEXT_ON_PRIMARY"), size=16, opacity=0.7)
     expanded = [False]
 
+    # Vartotojo el. pašto rodymas ir slėpimas paspaudus ant vartotojo vardo
     def toggle_email(e):
         expanded[0] = not expanded[0]
         if expanded[0]:
@@ -1218,6 +1213,7 @@ def dashboard_view(page: ft.Page):
         content=main_panel,
     )
 
+    # Pagrindinis vaizdas su šonine juosta ir pagrindiniu turiniu
     return ft.View(
         route="/dashboard",
         controls=[

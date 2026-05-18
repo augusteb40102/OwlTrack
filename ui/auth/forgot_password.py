@@ -1,3 +1,4 @@
+# UI komponentas pamiršto slaptažodžio atstatymo funkcionalumui.
 import flet as ft
 import re
 from ui.themes.backgrounds import auth_background
@@ -26,10 +27,12 @@ _PRIMARY_BTN_STYLE = ft.ButtonStyle(
     shape=ft.RoundedRectangleBorder(radius=10),
 )
 
+# Pamiršto slaptažodžio atstatymo vaizdas
 def forgot_password_view(page: ft.Page):
-    def go_back(e):
+    def go_back(e): # Grįžti atgal į login vaizdą
         page.go("/login")
 
+    # Validacija ar įvestas tekstas yra galiojantis el. paštas
     def is_valid_email(email: str) -> bool:
         return bool(re.fullmatch(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email.strip()))
 
@@ -49,7 +52,8 @@ def forgot_password_view(page: ft.Page):
         width=320, height=48,
         style=_PRIMARY_BTN_STYLE,
     )
-
+    
+    # Mygtuko būsenos atnaujinimas pagal email lauko turinį
     def on_email_change(e):
         """Atnaujinti mygtuko būseną pagal email lauko turinį"""
         send_button.disabled = not email_field.value.strip()
@@ -57,8 +61,8 @@ def forgot_password_view(page: ft.Page):
 
     email_field.on_change = on_email_change
 
+    # Sesijos funkcijos
     def on_send(e):
-        # Validacija
         if not email_field.value:
             error_text.value   = "Please enter your email address"
             error_text.visible = True

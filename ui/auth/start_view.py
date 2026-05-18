@@ -1,3 +1,4 @@
+# UI komponentas pradžios ekranui su animacija ir navigacija į prisijungimo/registracijos vaizdus.
 import flet as ft
 import asyncio
 from ui.themes.backgrounds import auth_background

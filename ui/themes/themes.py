@@ -1,5 +1,7 @@
+# Šiame faile yra apibrėžiamos spalvų temos, šriftų dydžiai, tarpai, kraštinių spinduliai ir kiti stiliaus elementai, kurie naudojami visoje programos vartotojo sąsajoje. 
+# Taip pat yra funkcija apply_theme, kuri leidžia dinamiškai keisti temą visoje programoje, atnaujinant visus susijusius stiliaus kintamuosius. 
+# Temų pasirinkimas apima violetinę, mėlyną, pilką ir žalią, o kiekviena tema turi savo unikalų spalvų rinkinį pagrindinėms, antrinėms, akcentinėms spalvoms, fonui, paviršiui, kraštams ir tekstui.
 import flet as ft
-
 # ─────────────────────────────────────────
 # PURPLE THEME
 # ─────────────────────────────────────────

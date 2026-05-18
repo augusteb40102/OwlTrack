@@ -1,3 +1,4 @@
+# UI komponentas kalendoriaus funkcionalumui, įskaitant tiek kompaktišką, tiek detalų vaizdus, leidžiantį vartotojams sekti savo nuotaikas ir veiklas kiekvienai dienai.
 import flet as ft
 import calendar
 from datetime import date
@@ -145,7 +146,6 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
 
         return ft.Column(rows, spacing=spacing, tight=True)
 
-    # ── COMPACT CALENDAR ──────────────────────────────────────────────
     compact_month_label = ft.Text(_month_str(), size=14, weight="bold", color=c("TEXT_PRIMARY"))
     compact_year_label  = ft.Text(str(cal_year[0]), size=14, weight="bold", color=c("TEXT_PRIMARY"))
     compact_grid_slot   = ft.Container()
@@ -328,7 +328,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
 
     _refresh_compact()
 
-    # ── DETAIL CALENDAR ───────────────────────────────────────────────
+    # ── Detalus kalendorius ───────────────────────────────────────────────
     detail_month_label    = ft.Text("", size=20, weight="bold", color=c("TEXT_PRIMARY"))
     detail_schedule_month = ft.Text("", size=13,
                                     color=ft.Colors.with_opacity(0.85, "#FFFFFF"))
@@ -378,7 +378,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
         _refresh_compact()
         day_popup.title.value = f"{MONTH_NAMES[cal_month[0]-1]} {day}, {cal_year[0]}"
         
-        # Load existing entry data if it exists
+        # Užpildome popup duomenimis iš paskutinio įrašo tą dieną
         entry_date = f"{cal_year[0]}-{cal_month[0]:02d}-{day:02d}"
         entries = get_calendar_entries(user_email, entry_date)
         mood_icon = entries[-1]["mood"] if entries and entries[-1]["mood"] else None
@@ -390,7 +390,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
                 if task.get("due_date") == entry_date and not task.get("completed"):
                     todo_tasks.append(task)
 
-        # Tooltip
+        # Tooltip tekstas
         tooltip_parts = []
         if entries and (entries[-1]["activity"] or entries[-1]["mood"]):
             last = entries[-1]
@@ -410,7 +410,7 @@ def build_calendar(page: ft.Page, c, grad, main_panel: ft.Container, user_email:
             activity_field.value = ""
             selected_mood[0] = None
         
-        # Update mood button states based on selected mood
+        # Atnaujiname nuotaikos mygtukus pagal pasirinkimą
         for m, btn in mood_btns.items():
             btn.bgcolor = c("SECONDARY") if m == selected_mood[0] else ft.Colors.TRANSPARENT
             btn.border = ft.border.all(2, c("SECONDARY") if m == selected_mood[0] else c("BORDER"))

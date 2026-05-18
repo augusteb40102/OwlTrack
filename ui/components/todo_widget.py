@@ -1,3 +1,4 @@
+# Šiame faile yra įgyvendinamas To-Do List komponentas, leidžiantis vartotojams kurti, redaguoti, šalinti ir žymėti užduotis kaip atliktas. Taip pat pateikiama mėnesio statistika apie užduočių atlikimą, įskaitant grafikus ir rodiklius. Komponentas naudoja Flet biblioteką UI kūrimui ir sąveikai su duomenų baze per importuotas funkcijas.
 import flet as ft
 import ui.themes.themes as th
 from datetime import datetime, timedelta

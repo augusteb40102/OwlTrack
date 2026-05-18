@@ -1,3 +1,4 @@
+# UI komponentas pažymių skaičiuoklei, leidžiantis vartotojams įvesti modulius, jų vertinimus ir svorius, bei apskaičiuoti semestro vidurkį, prognozes ir stipendijų tinkamumą.
 import flet as ft
 from database import list_modules, create_module, update_module, delete_module
 
@@ -28,9 +29,9 @@ _SAMPLE_MODULES = [
     },
 ]
 
-SCHOLARSHIP_THRESHOLD = 8.0
+SCHOLARSHIP_THRESHOLD = 8.0 # vidurkis, nuo kurio galima gauti stipendiją
 
-
+# ── Skaičiavimo funkcijos ───────────────────────────────────────────────
 def _module_avg(module: dict) -> float | None:
     assessments = [a for a in module["assessments"] if a.get("grade") is not None and a.get("weight") is not None]
     if not assessments:
@@ -38,10 +39,9 @@ def _module_avg(module: dict) -> float | None:
     total_w = sum(a["weight"] for a in assessments)
     if not total_w:
         return None
-    # Calculate weighted module average as grade*weight% across assessments.
     return sum(a["grade"] * a["weight"] for a in assessments) / 100.0
 
-
+# Modulio indėlis į semestro vidurkį, atsižvelgiant į ECTS svorį
 def _module_score(module: dict, total_ects: float) -> float | None:
     """Calculate module contribution to semester average.
 
@@ -52,24 +52,24 @@ def _module_score(module: dict, total_ects: float) -> float | None:
         return None
     return avg * module["ects"] / total_ects
 
-
+# Semestro vidurkis, apskaičiuotas kaip modulių indėlių suma
 def _semester_avg(modules: list[dict]) -> float | None:
     total_ects = _total_ects(modules)
     if not total_ects:
         return None
     return sum((_module_score(m, total_ects) or 0.0) for m in modules)
 
-
+# Bendras ECTS skaičius semestrui
 def _total_ects(modules: list[dict]) -> int:
     return sum(m["ects"] for m in modules)
 
-
+# Ar modulis yra pilnai įvertintas (graded assessments weight >= 100%)
 def _is_complete(module: dict) -> bool:
     """Module is complete when total weight of graded assessments reaches 100%."""
     weights = [a.get("weight", 0) for a in module["assessments"] if a.get("grade") is not None]
     return bool(weights) and round(sum(weights)) >= 100
 
-
+# Apskaičiuoja, kokio vidurkio reikia likusiems vertinimams, kad būtų pasiektas tikslas
 def calculate_projection(modules: list[dict], target: float | None) -> dict:
     """Calculate required average for remaining assessments to reach target.
 
@@ -98,21 +98,21 @@ def calculate_projection(modules: list[dict], target: float | None) -> dict:
         else:
             avg_graded = None
 
-        # contribution from graded part (weights expressed as percent)
+        # indėlis į vidurkį iš jau įvertintų vertinimų, proporcingai jų svoriui (iki 100%)
         graded_frac = min(sum_w / 100.0, 1.0)
         current_contrib += (avg_graded or 0.0) * graded_frac * ects / total_ects
 
-        # fraction of module still remaining (by weight)
+        # indėlis likusiems vertinimams
         remaining_frac = max(0.0, 1.0 - graded_frac)
         remaining_share += remaining_frac * ects / total_ects
 
-    # If no remaining assessments
+    # Jei nėra likusių vertinimų, grąžiname prognozę ir statusą
     if remaining_share <= 0:
         projected = current_contrib
         status = "achieved" if projected >= target else "no_remaining"
         return {"required_avg": None, "projected_final": projected, "status": status}
 
-    # required average across remaining (0..10)
+    # Reikalingas vidurkis likusiems vertinimams, kad būtų pasiektas tikslas
     required = (target - current_contrib) / remaining_share
     projected_final = current_contrib + remaining_share * max(0.0, required)
 
@@ -123,9 +123,8 @@ def calculate_projection(modules: list[dict], target: float | None) -> dict:
     return {"required_avg": required, "projected_final": projected_final, "status": "possible"}
 
 
-# ---------------------------------------------------------------------------
+# Funkcija, kuri sukuria ir grąžina pažymių skaičiuoklės UI komponentą, įskaitant tiek kompaktišką, tiek detalų vaizdus, bei logiką modulių pridėjimui, redagavimui ir šalinimui.
 def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str = ""):
-    # Load modules from DB for the given user_email. Fallback to sample when no user.
     modules: list[dict] = []
     def load_modules():
         modules.clear()
@@ -145,7 +144,6 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     home_panel_ref: list = [None]
     editing_index: list  = [None]   # None = add mode, int = edit mode
 
-    # ── shared display refs ──────────────────────────────────────────────
     dash_avg_text  = ft.Text("—", size=26, weight="bold", color=c("TEXT_PRIMARY"))
     dash_ects_text = ft.Text("0", size=13, weight="w500", color=c("TEXT_SECONDARY"))
     dash_rows_col  = ft.Column(spacing=4)
@@ -153,7 +151,6 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
     # target input binds to this value
     target_value: list[float | None] = [goal_value[0]]
 
-    # ── GOAL RING ────────────────────────────────────────────────────────
     RING_SIZE = 54
 
     def build_goal_ring(current: float | None, goal: float) -> ft.Stack:
@@ -200,7 +197,6 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         content=build_goal_ring(None, goal_value[0]),
     )
 
-    # Target input field (in detail view) - created here so render_detail can access it
     target_input = ft.TextField(
         label="",
         width=120,
@@ -211,7 +207,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         focused_border_color=c("PRIMARY"),
     )
 
-    # ── render compact ───────────────────────────────────────────────────
+    # Atnaujina semestro vidurkį, prognozę ir modulių sąrašą pagal esamus duomenis
     def render_dash():
         avg  = _semester_avg(modules)
         ects = _total_ects(modules)
@@ -239,7 +235,7 @@ def build_grade_calculator(page: ft.Page, c, grad, main_panel, user_email: str =
         dash_rows_col.controls = rows
 
     # ────────────────────────────────────────────────────────────────────
-    # ADD / EDIT DIALOG
+    # ADD / EDIT DIALOGAS
     # ────────────────────────────────────────────────────────────────────
     dialog_title_text = ft.Text("Add New Module", size=18, weight="bold",
                                  color=c("TEXT_PRIMARY"))

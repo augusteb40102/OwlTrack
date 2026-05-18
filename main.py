@@ -1,3 +1,4 @@
+# Šiame faile yra pagrindinė programos įėjimo taškas, kuriame nustatoma Flet aplikacijos struktūra, maršrutizacija ir sesijos valdymas
 import flet as ft
 from ui.auth.start_view import start_view
 from ui.auth.login_view import login_view

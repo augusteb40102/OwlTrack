@@ -1,5 +1,8 @@
 import flet as ft
 
+# Šiame faile yra įgyvendinamas fonas, naudojamas autentifikacijos ekranuose (prisijungimo, registracijos, profilio nuotraukos pasirinkimo). 
+# Foną sudaro animuotas kosmoso vaizdas, kuris užpildo visą ekraną, o virš jo yra dedamas perduodamas turinys (pvz., formos, mygtukai). 
+# Tai suteikia vizualiai patrauklų ir tematiškai tinkamą foną visiems autentifikacijos susijusiems ekranams.
 def auth_background(content, page=None):
     return ft.Stack(
         expand=True,

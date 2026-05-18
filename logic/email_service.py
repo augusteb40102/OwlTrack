@@ -1,3 +1,4 @@
+# email_service.py – logika susijusi su slaptažodžio atstatymo el. laiškų siuntimu
 import smtplib
 import time
 import logging
@@ -33,6 +34,7 @@ if not GMAIL_USER or not GMAIL_PASSWORD:
 
 _last_request: dict = {}
 
+# Generuoja vienkartinį kodą ir siunčia jį į nurodytą el. paštą. Grąžina žinutę apie sėkmę arba klaidą.
 def generate_reset_token() -> str:
     """Generuoja 10 simbolių vienkartinį kodą (raidės + skaičiai + paprasti ženklai)"""
     alphabet = string.ascii_uppercase + string.digits + "!@#$%"
