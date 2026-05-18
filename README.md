@@ -156,23 +156,6 @@ Jei prisijungimas pavyko sėkmingai, atsivers pradinis programos langas:
 
 <img width="940" height="482" alt="image" src="https://github.com/user-attachments/assets/4728b60b-e1c0-4cd7-9fd5-4328a4ea2f03" />
 
-### Kalendorius
-Pradiniame lange paspaudus kalendoriaus rėmų plotą, vartotojui atsidarys kalendoriaus langas, kuriame galima matyti metus, mėnesius, dienas, pažymėtas veiklas.
-
-<img width="940" height="471" alt="image" src="https://github.com/user-attachments/assets/f3ad7df1-b947-40d9-a721-3977535c7978" />
-
-Norint užregistruoti veiklą, arba pridėti tam tikros dienos emociją, reikia paspausti ant norimos datos. Paspaudus atsidaro langelis, kuriame vartotojas gali įvesti norimą veiklą, bei pasirikti emociją.
-
-<img width="940" height="475" alt="image" src="https://github.com/user-attachments/assets/8df10275-d9ad-432a-8891-231e80ee3c53" />
-
-Paspaudus mygtuką „Save“ langelis pradings, o kalendoriuje pažymėta diena nusispalvins rožine spalva. Užvedus pelytę ant to langelio matysime užregistruotą veiklą:
-
-<img width="940" height="468" alt="image" src="https://github.com/user-attachments/assets/5d7e94f3-9681-4cfc-a4bc-e59cc81a7657" />
-
-Užregistravus užduotį To-Do list‘e, kalendoriuje taip pat atsiras pažymėta diena (pažymi tą dieną, kurią turi būti pabaigta užduotis), ji nusispalvina žydra spalva. Užvedus pelytę ant dienos vartotojas taip pat pamatys užduoties pavadinimą, bei tipą.
-
-<img width="940" height="462" alt="image" src="https://github.com/user-attachments/assets/8d6d23d7-d27d-4d30-a2db-261511bdae00" />
-
 ### Pagrindinis langas
 Atidaromas pagrindinis vartotojo langas, kuriame galime atlikti skirtingas funkcijas: pažymėti įvykius kalendoriuje, sukurti įvykių atmintinę, sekti pažymių pasiekimų lygį naudojantis specialia skaičiuokle.
 
@@ -193,6 +176,23 @@ Paspaudus mygtuką „Help“ esančiame pagrindinio lango kairėje pusėje,  ga
 Paspaudus mygtuką „Log Out“ esančiame apačioje, pagrindinio lango kairėje pusėje, galima atsijungti nuo programėlės ir baigti sesiją. Po mygtuko paspaudimo, vartotojas nukreipiamas į prisijungimo langą.
 
 <img width="975" height="490" alt="image" src="https://github.com/user-attachments/assets/d9f28483-b6fb-41c1-99c9-4973108f9320" />
+
+### Kalendorius
+Pradiniame lange paspaudus kalendoriaus rėmų plotą, vartotojui atsidarys kalendoriaus langas, kuriame galima matyti metus, mėnesius, dienas, pažymėtas veiklas.
+
+<img width="940" height="471" alt="image" src="https://github.com/user-attachments/assets/f3ad7df1-b947-40d9-a721-3977535c7978" />
+
+Norint užregistruoti veiklą, arba pridėti tam tikros dienos emociją, reikia paspausti ant norimos datos. Paspaudus atsidaro langelis, kuriame vartotojas gali įvesti norimą veiklą, bei pasirikti emociją.
+
+<img width="940" height="475" alt="image" src="https://github.com/user-attachments/assets/8df10275-d9ad-432a-8891-231e80ee3c53" />
+
+Paspaudus mygtuką „Save“ langelis pradings, o kalendoriuje pažymėta diena nusispalvins rožine spalva. Užvedus pelytę ant to langelio matysime užregistruotą veiklą:
+
+<img width="940" height="468" alt="image" src="https://github.com/user-attachments/assets/5d7e94f3-9681-4cfc-a4bc-e59cc81a7657" />
+
+Užregistravus užduotį To-Do list‘e, kalendoriuje taip pat atsiras pažymėta diena (pažymi tą dieną, kurią turi būti pabaigta užduotis), ji nusispalvina žydra spalva. Užvedus pelytę ant dienos vartotojas taip pat pamatys užduoties pavadinimą, bei tipą.
+
+<img width="940" height="462" alt="image" src="https://github.com/user-attachments/assets/8d6d23d7-d27d-4d30-a2db-261511bdae00" />
 
 ### To-Do-List
 Paspaudus ant „To-Do-List“ langelio esančiame viršuje, pagrindinio lango dešinėje pusėje. Atidaromas detalesnis langas, kuriame galima pridėti įvykius. Apskritimas, prie pavaizduoto įvykio, leidžia pažymėti šį kaip atliktą ir perkelti prie atliktųjų sąrašo. 
